@@ -87,9 +87,9 @@ export default class GM3LevelSelect extends Phaser.Scene {
 
     // --- Level Buttons aligned like main menu ---
     const levels = [
-      { key: "GM3Level1", label: "Level 1" },
-      { key: "GM3Level2", label: "Level 2" },
-      { key: "GM3Level3", label: "Level 3" },
+      { key: "GM3Level1", label: "Equation Solving" },
+      { key: "GM3Level2", label: "Tracking Change" },
+      { key: "GM3Level3", label: "Error Checking" },
     ];
     const totalButtons = levels.length;
     const spacing = 100;
