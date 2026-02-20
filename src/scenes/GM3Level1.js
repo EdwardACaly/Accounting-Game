@@ -6,8 +6,18 @@ export default class GM3Level1 extends BaseGM3Scene {
     super("GM3Level1", { title: "", level: 1, timeLimit: 90 });
     this.currentIndex = 0;
     this.questions = [];
-    this.currentCorrect = -1;
+    
+    //ORIGINAL CODE:
+    // this.currentCorrect = -1;
+    // this._uiNodes = [];
+    
+    // NEW CODE:
+    //We keep currentCorrect around just in case, but add variables to handle text input states
+    this.currentCorrect = -1; 
+    this.currentInput = "";         // Stores the player's current typed numbers
+    this.acceptingInput = false;    // Acts as a gatekeeper so players can't type during countdowns or feedback
     this._uiNodes = [];
+    
     this.score = 0; // start score at 0 -> shows as POINTS: 0000
   }
 
@@ -20,6 +30,11 @@ export default class GM3Level1 extends BaseGM3Scene {
 
   _finishToGameOver(reason = "completed") {
     if (this.timerEvent) this.timerEvent.remove(false);
+    
+    // NEW CODE: 
+    // Clean up the keyboard listener so it doesn't carry over into the GameOver scene
+    this.input.keyboard.off('keydown'); 
+    
     this.scene.start("GameOverScene", { score: this.score, mode: "GM3-Level1", reason });
   }
 
@@ -51,7 +66,17 @@ export default class GM3Level1 extends BaseGM3Scene {
       if (correctIndex === -1) correctIndex = this._detectGoodGreen([gCell, hCell, iCell, jCell]);
       if (correctIndex === -1) continue;
 
-      rows.push({ question, answers: [A, B, C, D], correctIndex });
+      // ORIGINAL CODE:
+      // rows.push({ question, answers: [A, B, C, D], correctIndex });
+
+      // NEW CODE:
+      //We grab the correct answer based on the index, then strip out anything that isn't a number 0-9
+      //so we can compare it strictly against the player's numerical typing.
+      //we don't want the player to be able to type anything other than numbers 
+      const answersRaw = [A, B, C, D];
+      const rawCorrectText = answersRaw[correctIndex] || "";
+      const numericCorrect = rawCorrectText.replace(/[^0-9]/g, ''); 
+      rows.push({ question, correctAnswer: numericCorrect, originalAnswers: answersRaw });
     }
 
     if (!rows.length) return this._failAndBack("No valid questions found in the sheet.");
@@ -103,7 +128,8 @@ export default class GM3Level1 extends BaseGM3Scene {
       align: "center",
     }).setOrigin(0.5).setDepth(6);
 
-    // Answers (2x2 evenly spaced)
+    // ORIGINAL CODE: (Multiple Choice 2x2 Grid)
+    /*
     const cols = 2, totalBoxes = 4;
     const gridWidth = width * 0.8;
     const boxW = gridWidth / cols - 40;
@@ -139,6 +165,24 @@ export default class GM3Level1 extends BaseGM3Scene {
       this.ansNodes[i].rect.setPosition(x, y);
       this.ansNodes[i].txt.setPosition(x, y);
     }
+    */
+
+    // NEW CODE: (Single Text Input Box)
+    // We create a center-aligned box and text object to display what the user types.
+    // We also add a feedback text object to tell them if they are right or wrong.
+    const inputBoxW = 400;
+    const inputBoxH = 80;
+    
+    this.inputBox = this.add.rectangle(width / 2, height * 0.55, inputBoxW, inputBoxH, 0xdcc89f)
+      .setStrokeStyle(4, 0x7f1a02).setDepth(5);
+
+    this.inputText = this.add.text(width / 2, height * 0.55, "", {
+      fontSize: "48px", color: "#7f1a02", fontFamily: '"Jersey 10", sans-serif',
+    }).setOrigin(0.5).setDepth(6);
+
+    this.feedbackText = this.add.text(width / 2, height * 0.68, "", {
+      fontSize: "36px", color: "#7f1a02", fontFamily: '"Jersey 10", sans-serif', align: "center"
+    }).setOrigin(0.5).setDepth(6).setAlpha(0);
 
     // Floating +100
     this.plusTextAnchor = { x: width / 2, y: height * 0.51 };
@@ -149,19 +193,76 @@ export default class GM3Level1 extends BaseGM3Scene {
     }).setOrigin(0.5).setDepth(15).setStroke("#7f1a02", 3).setAlpha(0);
 
     // Hide gameplay UI until start
+    // ORIGINAL CODE:
+    /*
     this._uiNodes = [
       this.qText,
       this.timerText,
       this.scoreText,
       ...this.ansNodes.flatMap(n => [n.rect, n.txt]),
     ];
+    */
+
+    // NEW CODE: Include the new input elements in the UI tracking array instead of ansNodes
+    this._uiNodes = [
+      this.qText, this.timerText, this.scoreText, 
+      this.inputBox, this.inputText, this.feedbackText
+    ];
+    
     this._setGameplayUIVisible(false);
+
+    // NEW CODE: Bind the keyboard listener for typing
+    this.input.keyboard.on('keydown', this._handleKeydown, this);
 
     this.currentIndex = 0;
     this._showCurrent(false);
 
     // Persistent start card
     this._showPreStartCard();
+  }
+
+  //NEW CODE BLOCK: Keyboard handling logic
+  //Listens for numbers, backspace, and the enter key to submit.
+  _handleKeydown(event) {
+    if (!this.acceptingInput) return; // Ignore typing if not ready
+
+    if (event.key === "Backspace") {
+      // Remove the last character
+      this.currentInput = this.currentInput.slice(0, -1);
+    } else if (event.key === "Enter") {
+      // Only submit if they actually typed something
+      if (this.currentInput.length > 0) this._submitAnswer();
+    } else if (/^[0-9]$/.test(event.key)) {
+      // Regex ensures ONLY numbers 0-9 are added to the string
+      this.currentInput += event.key;
+    }
+    
+    // Update the visual text on screen
+    this.inputText.setText(this.currentInput);
+  }
+
+  //NEW CODE BLOCK: Submitting and validating the answer
+  //Compares the typed input against the purely numeric correct answer from the Excel sheet.
+  _submitAnswer() {
+    this.acceptingInput = false; // Stop them from typing while feedback is showing
+    const item = this.questions[this.currentIndex];
+    
+    if (this.currentInput === item.correctAnswer) {
+      this.onScored(100);
+      this._updateScoreUI();
+      this._showPlus100();
+      this.inputBox.setStrokeStyle(4, 0x2e7d32); // Turn box border green
+      this.feedbackText.setText("Correct!").setColor("#2e7d32").setAlpha(1);
+    } else {
+      this.inputBox.setStrokeStyle(4, 0x8b0000); // Turn box border red
+      this.feedbackText.setText(`Incorrect!\nCorrect answer: ${item.correctAnswer}`).setColor("#8b0000").setAlpha(1);
+    }
+
+    // Delay so they can read the feedback, then automatically advance to next question
+    this.time.delayedCall(1800, () => {
+      this.currentIndex++;
+      this._showCurrent(true);
+    });
   }
 
   // --- Pre-start beige card with perfectly aligned button hitbox (Level 1) ---
@@ -258,15 +359,30 @@ export default class GM3Level1 extends BaseGM3Scene {
   _showCurrent(show = true) {
     if (this.currentIndex >= this.questions.length) return this._finishToGameOver("completed");
     const item = this.questions[this.currentIndex];
+    
+    // ORIGINAL CODE:
+    /*
     this.currentCorrect = item.correctIndex;
     this.qText.setText(item.question);
     this.ansNodes.forEach((n, i) => {
       n.rect.setFillStyle(0xdcc89f);
       n.txt.setText(item.answers[i] ?? "");
     });
+    */
+
+    // NEW CODE: Reset the input UI for the fresh question
+    this.qText.setText(item.question);
+    this.currentInput = "";
+    this.inputText.setText("");
+    this.inputBox.setStrokeStyle(4, 0x7f1a02);
+    this.feedbackText.setAlpha(0);
+    this.acceptingInput = true; // Let them type again
+
     if (show) this._setGameplayUIVisible(true);
   }
 
+  // ORIGINAL CODE: (Handling clicks on multiple choice boxes)
+  /*
   _chooseAnswer(i) {
     if (!this.input.enabled) return;
     this.input.enabled = false;
@@ -286,6 +402,7 @@ export default class GM3Level1 extends BaseGM3Scene {
       this.input.enabled = true;
     });
   }
+  */
 
   _startCountdown() {
     this.input.enabled = false;
@@ -320,6 +437,9 @@ export default class GM3Level1 extends BaseGM3Scene {
       this._updateTimerUI();
       this._updateScoreUI();
       this.input.enabled = true;
+      
+      // NEW CODE: Trigger the flag to allow keyboard input once the game actually begins
+      this.acceptingInput = true; 
     });
   }
 
