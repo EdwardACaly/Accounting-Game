@@ -261,7 +261,7 @@ export default class GM3Level1 extends BaseGM3Scene {
     
     //hide the cursor while feedback is up
     this.cursor.setVisible(false);
-    
+
     const item = this.questions[this.currentIndex];
     
     if (this.currentInput === item.correctAnswer) {
@@ -276,7 +276,7 @@ export default class GM3Level1 extends BaseGM3Scene {
     }
 
     // Delay so they can read the feedback, then automatically advance to next question
-    this.time.delayedCall(1800, () => {
+    this.time.delayedCall(1000, () => {
       this.currentIndex++;
       this._showCurrent(true);
     });
