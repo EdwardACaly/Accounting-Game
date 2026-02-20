@@ -15,7 +15,7 @@ export default class GM3Level3 extends BaseGM3Scene {
     preload() {
         this.load.binary(
             "gm3_hard_xlsx",
-            "assets/UpdatedAccountingElements.xlsx"
+            "assets/UpdatedAccountingElements_v2.26.xlsx"
         );
         this.load.image("gm3_level1_bg", "assets/level1.jpg");
     }
