@@ -184,6 +184,17 @@ export default class GM3Level1 extends BaseGM3Scene {
       fontSize: "36px", color: "#7f1a02", fontFamily: '"Jersey 10", sans-serif', align: "center"
     }).setOrigin(0.5).setDepth(6).setAlpha(0);
 
+    //blinking cursor effect
+    // Create a 4px wide, 40px tall rectangle to act as the cursor
+    this.cursor = this.add.rectangle(width / 2 + 4, height * 0.55, 4, 40, 0x7f1a02).setDepth(6).setAlpha(0);
+    this.tweens.add({
+      targets: this.cursor,
+      alpha: 1,
+      duration: 400,
+      yoyo: true,
+      repeat: -1
+    });
+
     // Floating +100
     this.plusTextAnchor = { x: width / 2, y: height * 0.51 };
     this.plusText = this.add.text(this.plusTextAnchor.x, this.plusTextAnchor.y, "+100", {
@@ -206,7 +217,7 @@ export default class GM3Level1 extends BaseGM3Scene {
     // NEW CODE: Include the new input elements in the UI tracking array instead of ansNodes
     this._uiNodes = [
       this.qText, this.timerText, this.scoreText, 
-      this.inputBox, this.inputText, this.feedbackText
+      this.inputBox, this.inputText, this.feedbackText, this.cursor
     ];
     
     this._setGameplayUIVisible(false);
@@ -239,12 +250,18 @@ export default class GM3Level1 extends BaseGM3Scene {
     
     // Update the visual text on screen
     this.inputText.setText(this.currentInput);
+    //cursor 
+    this.cursor.x = this.inputText.x + (this.inputText.width / 2) + 4;
   }
 
   //NEW CODE BLOCK: Submitting and validating the answer
   //Compares the typed input against the purely numeric correct answer from the Excel sheet.
   _submitAnswer() {
     this.acceptingInput = false; // Stop them from typing while feedback is showing
+    
+    //hide the cursor while feedback is up
+    this.cursor.setVisible(false);
+    
     const item = this.questions[this.currentIndex];
     
     if (this.currentInput === item.correctAnswer) {
@@ -377,6 +394,10 @@ export default class GM3Level1 extends BaseGM3Scene {
     this.inputBox.setStrokeStyle(4, 0x7f1a02);
     this.feedbackText.setAlpha(0);
     this.acceptingInput = true; // Let them type again
+
+    //reset curso 
+    this.cursor.setVisible(true);
+    this.cursor.x = this.inputText.x + 4;
 
     if (show) this._setGameplayUIVisible(true);
   }
