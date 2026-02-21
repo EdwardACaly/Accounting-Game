@@ -23,11 +23,11 @@ import GM3PauseScene from "./scenes/GM3PauseScene";
 const config = {
   type: Phaser.AUTO,
   parent: "phaser-container",
-  width: 960,
-  height: 540,
+  width: 1920,
+  height: 1080,
   backgroundColor: "0xffffff",
   pixelArt: true,
-  roundPixel: false,
+  roundPixels: false,
   max: {
     width: window.innerWidth,
     height: window.innerHeight,

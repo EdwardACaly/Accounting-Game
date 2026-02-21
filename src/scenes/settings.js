@@ -15,13 +15,38 @@ export class Leaderboard extends Scene {
         this.add.image(0, 0, "home_bg")
             .setOrigin(0, 0)
             .setDisplaySize(this.scale.width, this.scale.height);
-        this.add.image(0, 0, "home_fg")
-            .setOrigin(0, 0)
-            .setDisplaySize(this.scale.width, this.scale.height);
+
+        // --- Back button ---
+        const BASE_SCALE = 0.05;
+        const HOVER_SCALE = BASE_SCALE * 1.15;
+        const back = this.add.image(50, 40, "exitIcon")
+            .setInteractive()
+            .setScale(BASE_SCALE);
+
+        back.on("pointerover", () => {
+            this.tweens.add({ targets: back, scale: HOVER_SCALE, duration: 120, ease: "Sine.easeOut" });
+            back.setTint(0xffffff);
+        });
+        back.on("pointerout", () => {
+            this.tweens.add({ targets: back, scale: BASE_SCALE, duration: 120, ease: "Sine.easeIn" });
+            back.clearTint();
+        });
+        back.on("pointerdown", () => {
+            this.tweens.add({
+                targets: back,
+                scale: BASE_SCALE * 0.92,
+                duration: 70,
+                yoyo: true,
+                ease: "Sine.easeInOut",
+                onComplete: () => this.scene.start("MainMenuScene"),
+            });
+        });
+
+
 
         // --- Center panel (larger to fit 10 rows + buttons) ---
-        const panelWidth = 1500;
-        const panelHeight = 1000;
+        const panelWidth = 750;
+        const panelHeight = 500;
         const panelX = this.scale.width / 2;
         const panelY = this.scale.height / 2;
 
@@ -30,7 +55,7 @@ export class Leaderboard extends Scene {
 
         // --- Title ---
         this.add.text(panelX, panelY - panelHeight / 2 + 40, "Leaderboard", {
-            fontSize: "100px",
+            fontSize: "50px",
             fill: "#dcc89f",
             fontFamily: '"Jersey 10", sans-serif',
         }).setOrigin(0.5);
@@ -45,16 +70,16 @@ export class Leaderboard extends Scene {
         ];
 
         const createButton = (x, y, labelText, onClick) => {
-            const border = this.add.rectangle(0, 0, 254, 104, 0x7f1a02).setDepth(3);
+            const border = this.add.rectangle(0, 0, 104, 64, 0x7f1a02).setDepth(3);
             border.setStrokeStyle(3, 0xdcc89f);
 
-            const rect = this.add.rectangle(0, 0, 250, 100, 0x7f1a02).setDepth(3);
+            const rect = this.add.rectangle(0, 0, 100, 60, 0x7f1a02).setDepth(3);
             const label = this.add.text(0, 0, labelText, {
-                fontSize: "60px",
+                fontSize: "22px",
                 fontFamily: '"Jersey 10", sans-serif',
                 color: "#dcc89f",
                 align: "center",
-                //wordWrap: { width: 90, useAdvancedWrap: true },  // wrap text within button width
+                wordWrap: { width: 90, useAdvancedWrap: true },  // wrap text within button width
             }).setOrigin(0.5).setDepth(3);
 
             const button = this.add.container(x, y, [border, rect, label]).setDepth(3);
@@ -83,38 +108,7 @@ export class Leaderboard extends Scene {
             return button;
         };
 
-        const button = createButton(panelX - panelWidth / 2 + 135, panelY - panelHeight / 2 + 60, "Exit", () => this.scene.start("MainMenuScene"));
-
-        // OLD BACK BUTTON CODE
-        /*
-        // --- Back button ---
-        const BASE_SCALE = 0.05;
-        const HOVER_SCALE = BASE_SCALE * 1.15;
-        const back = this.add.image(50, 40, "exitIcon")
-            .setInteractive()
-            .setScale(BASE_SCALE);
-
-        back.on("pointerover", () => {
-            this.tweens.add({ targets: back, scale: HOVER_SCALE, duration: 120, ease: "Sine.easeOut" });
-            back.setTint(0xffffff);
-        });
-        back.on("pointerout", () => {
-            this.tweens.add({ targets: back, scale: BASE_SCALE, duration: 120, ease: "Sine.easeIn" });
-            back.clearTint();
-        });
-        back.on("pointerdown", () => {
-            this.tweens.add({
-                targets: back,
-                scale: BASE_SCALE * 0.92,
-                duration: 70,
-                yoyo: true,
-                ease: "Sine.easeInOut",
-                onComplete: () => this.scene.start("MainMenuScene"),
-            });
-        });
-        */
-
-        const buttonSpacing = 280;
+        const buttonSpacing = 120;
         const buttonRowY = panelY + panelHeight / 2 - 60;
         const buttonStartX = panelX - ((modes.length - 1) * buttonSpacing) / 2;
 
@@ -127,12 +121,6 @@ export class Leaderboard extends Scene {
             );
             btn.setData("modeKey", mode.key);
         });
-
-        // *************************************************************************
-        // **                                                                     **
-        // **               SCROLLBAR NEEDS TO BE FIXED FOR NEW RES               **
-        // **                                                                     **
-        // *************************************************************************
 
         // --- Scrollable container ---
         const visibleRows = 10;
@@ -161,6 +149,7 @@ export class Leaderboard extends Scene {
         const mask = maskGraphics.createGeometryMask();
         this.tableGroup.setMask(mask);
 
+        // --- Scrollbar ---
         // --- Scrollbar ---
         const trackMargin = 10;
         const scrollBarX = panelX + panelWidth / 2 - 8;
@@ -327,8 +316,8 @@ export class Leaderboard extends Scene {
 
         } catch (err) {
             console.error(err);
-            const msg = this.add.text(0, 40, "Error loading leaderboard", {
-                fontSize: "52px",
+            const msg = this.add.text(0, 20, "Error loading leaderboard", {
+                fontSize: "20px",
                 fill: "#ff4444",
                 fontFamily: '"Jersey 10", sans-serif',
             }).setOrigin(0.5, 0);
