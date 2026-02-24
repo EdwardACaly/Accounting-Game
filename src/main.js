@@ -30,7 +30,7 @@ const config = {
   height: 540,
   backgroundColor: "0xffffff",
   pixelArt: true,
-  roundPixel: false,
+  roundPixels: false,
   max: {
     width: window.innerWidth,
     height: window.innerHeight,

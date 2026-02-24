@@ -7,7 +7,11 @@ export class MainMenuScene extends Scene {
   }
 
   init() {
-    this.cameras.main.fadeIn(1000, 0, 0, 0);
+    // fades in from loading screen ONLY
+    if (this.fadeFlag != true) {
+      this.cameras.main.fadeIn(1000, 0, 0, 0);
+      this.fadeFlag = true;
+    }
   }
 
   // Normalize saved volume: accept 0..1, 0..100, or "80%"
@@ -38,21 +42,26 @@ export class MainMenuScene extends Scene {
       .setDisplaySize(width, height)
       .setDepth(0);
 
+    // --- Foreground ---
+    this.add
+      .image(width / 2, height / 2, "home_fg")
+      .setOrigin(0.5)
+      .setDisplaySize(width, height)
+      .setDepth(2);
+
     // --- Clouds (single sprite, Pac-Man wrap) ---
     this.clouds = this.add
-      .image(width / 2, height / 2 - 50, "home_clouds")
-      .setOrigin(0.5)
-      .setScale(0.5)
+      .image(width / 2, height / 2 - 25, "home_clouds")
+      .setOrigin(0.55)
+      .setScale(0.8)
       .setDepth(1);
     this.cloudSpeed = 0.3;
 
-    // --- Overlay text ---
+    // Title Screen Text
     this.add
-      .image(width / 2, height / 2 + 80, "home_text")
-      .setOrigin(0.5)
-      .setDepth(2)
-      .setScale(0.8);
-
+      .image(width / 2, height / 2, "home_text")
+      .setDepth(3);
+    
     // --- Music (start 2s in). Do NOT restart if already playing. ---
     const setMusic = () => {
       // Ensure manager knows the current volume
@@ -78,16 +87,19 @@ export class MainMenuScene extends Scene {
     };
 
     const createButton = (x, y, labelText, onClick) => {
+      // visual body of the button
       const border = this.add.rectangle(0, 0, 304, 64, 0x7f1a02).setDepth(3);
       border.setStrokeStyle(3, 0xdcc89f);
 
+      // button hitbox
       const rect = this.add.rectangle(0, 0, 300, 60, 0x7f1a02).setDepth(3);
 
+      // label: text on top of button
       const label = this.add.text(0, 0, labelText, {
-        fontSize: "24px",
+        fontSize: "128px",
         fontFamily: '"Jersey 10", sans-serif',
         color: "#dcc89f",
-      }).setOrigin(0.5).setDepth(3);
+      }).setOrigin(0.5).setDepth(3).setScale(0.27);
 
       const button = this.add.container(x, y, [border, rect, label]).setDepth(3);
 
@@ -113,9 +125,11 @@ export class MainMenuScene extends Scene {
     };
 
     const totalButtons = options.length;
-    const spacing = 100;
+
+    // controls menu spacing and placement
+    const spacing = 85;
     const blockHeight = (totalButtons - 1) * spacing;
-    const startY = height / 2 - blockHeight / 2;
+    const startY = height / 2 - blockHeight / 2 + 50;
 
     options.forEach((option, index) => {
       createButton(
@@ -141,45 +155,70 @@ export class MainMenuScene extends Scene {
       );
     });
 
+
+    // ***** ICONS *****
+
     // --- Icon constants ---
-    const ICON_Y = 40;
-    const ICON_MARGIN = 50;
+    const ICON_Y = 50;    // y-pos of icons
+    const ICON_MARGIN = 45;   // distance from screen edge
+    const BASE_SCALE = 0.075;    // base scale (size) for all icons
+    const HOVER_SCALE = BASE_SCALE * 1.15;    // scale on hover
 
-    // --- Volume Button (top-left) ---
-    this.volumeButton = this.add.circle(ICON_MARGIN, ICON_Y, 20, 0x7f1a02)
-      .setDepth(5).setInteractive();
-    this.volumeButton.setStrokeStyle(2, 0xdcc89f);
+    // Settings Icon
+    const settingsIcon = this.add.image(ICON_MARGIN, ICON_Y, "settingsIcon")
+      .setInteractive({ useHandCursor: true })
+      .setScale(BASE_SCALE).setDepth(5);
 
-    // Icon
-    this.volumeIcon = this.add.image(ICON_MARGIN, ICON_Y, "volumeIcon")
-      .setDisplaySize(24, 24).setDepth(6);
+    // behavior on mouseover
+    settingsIcon.on("pointerover", () => {
+      this.tweens.killTweensOf(settingsIcon);
+      this.tweens.add({ targets: settingsIcon, scale: HOVER_SCALE, duration: 120, ease: "Sine.easeOut" });
+      settingsIcon.setTint(0xffffff);
+    });
 
-    // Hover effect
-    this.volumeButton.on("pointerover", () => this.volumeButton.setFillStyle(0xa8321a));
-    this.volumeButton.on("pointerout",  () => this.volumeButton.setFillStyle(0x7f1a02));
-    this.volumeButton.on("pointerdown", () => this.toggleVolumeSlider());
+    // behavior on mouse exit
+    settingsIcon.on("pointerout", () => {
+      this.tweens.killTweensOf(settingsIcon);
+      this.tweens.add({ targets: settingsIcon, scale: BASE_SCALE, duration: 120, ease: "Sine.easeIn" });
+      settingsIcon.clearTint();
+    });
 
-    // --- Leaderboard Icon (top-right) ---
-    const BASE_SCALE = 0.05;
-    const HOVER_SCALE = BASE_SCALE * 1.15;
-
+    // behavior on click
+    settingsIcon.on("pointerdown", () => {
+      if ((this.game.sfxVolume ?? this.sound.volume) > 0) this.sound.play("selection");
+      this.tweens.killTweensOf(settingsIcon);
+      this.tweens.add({
+        targets: settingsIcon,
+        scale: BASE_SCALE * 0.92,
+        duration: 70,
+        yoyo: true,
+        ease: "Sine.easeInOut",
+        onComplete: () => this.scene.start("SettingsScene"),
+      });
+    });
+    
+    // Leaderboard Icon
     const leader_icon = this.add.image(width - ICON_MARGIN, ICON_Y, "leaderboardIcon")
       .setInteractive({ useHandCursor: true })
-      .setScale(BASE_SCALE).setOrigin(0.5).setDepth(5);
+      .setScale(BASE_SCALE).setDepth(5);
 
+    // behavior on mouseover
     leader_icon.on("pointerover", () => {
       this.tweens.killTweensOf(leader_icon);
       this.tweens.add({ targets: leader_icon, scale: HOVER_SCALE, duration: 120, ease: "Sine.easeOut" });
       leader_icon.setTint(0xffffff);
     });
 
+    // behavior on mouse exit
     leader_icon.on("pointerout", () => {
       this.tweens.killTweensOf(leader_icon);
       this.tweens.add({ targets: leader_icon, scale: BASE_SCALE, duration: 120, ease: "Sine.easeIn" });
       leader_icon.clearTint();
     });
 
+    // behavior on click
     leader_icon.on("pointerdown", () => {
+      if ((this.game.sfxVolume ?? this.sound.volume) > 0) this.sound.play("selection");
       this.tweens.killTweensOf(leader_icon);
       this.tweens.add({
         targets: leader_icon,
@@ -191,6 +230,30 @@ export class MainMenuScene extends Scene {
       });
     });
   }
+
+  // OLD VOLUME SLIDER CODE, MAY REUSE
+  /*
+    // --- Volume Button (top-left) ---
+    this.volumeButton = this.add.circle(ICON_MARGIN, ICON_Y, 63, 0x7f1a02)
+      .setDepth(5).setInteractive();
+    this.volumeButton.setStrokeStyle(2, 0xdcc89f);
+
+    // Icon
+    this.volumeIcon = this.add.image(ICON_MARGIN, ICON_Y, "volumeIcon")
+      .setDisplaySize(100, 100).setDepth(6);
+
+    // Hover effect
+    this.volumeButton.on("pointerover", () => this.volumeButton.setFillStyle(0xa8321a));
+
+    this.volumeButton.on("pointerover", () => {
+      this.tweens.killTweensOf(volumeButton);
+      this.tweens.add({ targets: volumeButton, scale: HOVER_SCALE, duration: 120, ease: "Sine.easeOut" });
+      volumeButton.setTint(0xffffff);
+    });
+    
+    this.volumeButton.on("pointerout",  () => this.volumeButton.setFillStyle(0x7f1a02));
+    this.volumeButton.on("pointerdown", () => this.toggleVolumeSlider());
+    */
 
   update() {
     if (this.clouds) {
@@ -220,6 +283,8 @@ export class MainMenuScene extends Scene {
     });
   }
 
+
+  // DON'T NEED?
   toggleVolumeSlider() {
     if (this.volumeSliderBox) {
       this.volumeSliderBox.destroy();
