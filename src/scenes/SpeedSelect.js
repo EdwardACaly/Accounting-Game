@@ -1,6 +1,12 @@
 // src/scenes/SpeedSelect.js
 import Phaser from "phaser";
 
+// Default settings if no localStorage
+const DEFAULT_SETTINGS = {
+    difficulty: 1,
+    volume: 1.0,
+};
+
 export class SpeedSelect extends Phaser.Scene {
   constructor() {
     super("SpeedSelect");
@@ -14,22 +20,23 @@ export class SpeedSelect extends Phaser.Scene {
   create() {
     const { width, height } = this.scale;
 
-    // --- Keep existing menu music alive ---
-    const mm = this.game?.musicManager;
-    if (mm) {
-      const vol = this.game.sfxVolume ?? 1;
-      this.sound.volume = vol;
+        // Load stored or default volume
+        this.volume = parseFloat(localStorage.getItem("volume"));
+        if (isNaN(this.volume)) this.volume = DEFAULT_SETTINGS.volume;
 
-      if (!mm.isPlaying()) {
-        mm.play(this, "menu_bgm");
-      }
+        // Store volume globally
+        this.game.sfxVolume = Math.max(0, Math.min(1, this.volume));
+        this.game.playSFX = (scene, key, config = {}) => {
+            scene.sound.play(key, {
+                ...config,
+                volume: this.game.sfxVolume,
+            });
+        };
 
-      const onVol = (v) => { mm.setVolume(v); this.sound.volume = v; };
-      this.game.events.on("volume-changed", onVol);
-      this.events.once(Phaser.Scenes.Events.SHUTDOWN, () =>
-        this.game.events.off("volume-changed", onVol)
-      );
-    }
+        // Sync music immediately
+        if (this.game.musicManager) {
+            this.game.musicManager.setVolume(this.game.sfxVolume);
+        }
 
     // --- Background ---
     this.add.image(width / 2, height / 2, "home_bg")

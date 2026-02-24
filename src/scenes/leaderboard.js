@@ -84,8 +84,10 @@ export class Leaderboard extends Scene {
         };
 
         // new Exit button
-        const button = createButton(panelX - panelWidth / 2 + 72.5, panelY - panelHeight / 2 + 35,
-                                    "Exit", () => this.scene.start("MainMenuScene"));
+        createButton(panelX - panelWidth / 2 + 72.5,
+                     panelY - panelHeight / 2 + 35,
+                     "Exit",
+                     () => this.scene.start("MainMenuScene"));
 
         // OLD BACK BUTTON CODE
         /*
@@ -158,7 +160,6 @@ export class Leaderboard extends Scene {
         this.tableGroup.setMask(mask);
 
         // --- Scrollbar ---
-        // --- Scrollbar ---
         const trackMargin = 10;
         const scrollBarX = panelX + panelWidth / 2 - 8;
         const scrollBarHeight = maskVisibleHeight - trackMargin * 2;
@@ -229,6 +230,12 @@ export class Leaderboard extends Scene {
 
         // --- Load leaderboard ---
         this.loadLeaderboard(this.gameKey);
+
+        // ESC goes back
+        this._escKey = this.input.keyboard.addKey(
+            Phaser.Input.Keyboard.KeyCodes.ESC
+        );
+        this._escKey.on("down", () => this.scene.start("MainMenuScene"));
     }
 
     updateScroll(maskVisibleHeight, maskTopY) {
