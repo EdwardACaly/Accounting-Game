@@ -310,6 +310,10 @@ export class MainScene extends Scene {
 
         // show system cursor in menus
         this.input.setDefaultCursor("default");
+
+        // this comes from SpeedSelect
+    	this.gameMode = data.type;
+    	this.speedMultiplier = data.speedMultiplier || 1; // default to normal
     }
     addBall() {
         if (this.balls.getLength() >= NUM_BALLS_AT_TIME) return;
@@ -682,7 +686,8 @@ export class MainScene extends Scene {
             this.input.setDefaultCursor("none"); // hide mouse in gameplay
             this.difficulty = parseInt(localStorage.getItem("difficulty") || 1);
             this.time.addEvent({
-                delay: this.config.time_between_ball_spawns,
+		// ADDED: speed multiplier
+                delay: this.config.time_between_ball_spawns / this.speedMultiplier,
                 callback: this.addBall,
                 callbackScope: this,
                 loop: true,

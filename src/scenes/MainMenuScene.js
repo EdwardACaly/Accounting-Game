@@ -206,7 +206,9 @@ export class MainMenuScene extends Scene {
   startGame(selectedOptions) {
     this.cameras.main.fadeOut(500, 0, 0, 0);
     this.cameras.main.once("camerafadeoutcomplete", () => {
-      this.scene.start("MainScene", { type: selectedOptions.type });
+      // speed select BEFORE game starts (GM 1 and 2)
+      this.scene.start("SpeedSelect", { type: selectedOptions.type });
+      //this.scene.start("MainScene", { type: selectedOptions.type });
     });
   }
 

@@ -1,0 +1,175 @@
+// src/scenes/SpeedSelect.js
+import Phaser from "phaser";
+
+export class SpeedSelect extends Phaser.Scene {
+  constructor() {
+    super("SpeedSelect");
+  }
+
+  init(data) {
+    // This comes from MainMenuScene
+    this.gameMode = data.type;
+  }
+
+  create() {
+    const { width, height } = this.scale;
+
+    // --- Keep existing menu music alive ---
+    const mm = this.game?.musicManager;
+    if (mm) {
+      const vol = this.game.sfxVolume ?? 1;
+      this.sound.volume = vol;
+
+      if (!mm.isPlaying()) {
+        mm.play(this, "menu_bgm");
+      }
+
+      const onVol = (v) => { mm.setVolume(v); this.sound.volume = v; };
+      this.game.events.on("volume-changed", onVol);
+      this.events.once(Phaser.Scenes.Events.SHUTDOWN, () =>
+        this.game.events.off("volume-changed", onVol)
+      );
+    }
+
+    // --- Background ---
+    this.add.image(width / 2, height / 2, "home_bg")
+      .setOrigin(0.5)
+      .setDisplaySize(width, height)
+      .setDepth(0);
+
+    // Moving clouds
+    this.clouds = this.add.image(width / 2, height / 2 - 50, "home_clouds")
+      .setOrigin(0.5)
+      .setScale(0.5)
+      .setDepth(1);
+    this.cloudSpeed = 0.3;
+
+    // --- Back Arrow ---
+    const backContainer = this.add.container(90, 46).setDepth(5);
+    const w = 60, h = 40;
+
+    const backBorder = this.add.rectangle(0, 0, w + 4, h + 4, 0x7f1a02);
+    backBorder.setStrokeStyle(2, 0xdcc89f);
+
+    const backRect = this.add.rectangle(0, 0, w, h, 0x7f1a02);
+    backRect.setStrokeStyle(2, 0xdcc89f);
+
+    const backArrow = this.add.text(0, 0, "←", {
+      fontSize: "32px",
+      fontFamily: '"Jersey 10", sans-serif',
+      color: "#dcc89f",
+      stroke: "#dcc89f",
+      strokeThickness: 2,
+    }).setOrigin(0.5);
+
+    backContainer.add([backBorder, backRect, backArrow]);
+    Phaser.Display.Align.In.Center(backArrow, backRect);
+    backArrow.y -= 3;
+
+    backRect.setInteractive({ useHandCursor: true });
+    backRect.on("pointerover", () => {
+      backRect.setFillStyle(0xa8321a);
+      this.tweens.add({ targets: backContainer, scale: 1.1, duration: 150 });
+    });
+    backRect.on("pointerout", () => {
+      backRect.setFillStyle(0x7f1a02);
+      this.tweens.add({ targets: backContainer, scale: 1 });
+    });
+    backRect.on("pointerdown", () => {
+      if ((this.game?.sfxVolume ?? this.sound.volume) > 0)
+        this.sound.play("selection");
+
+      this.scene.start("MainMenuScene");
+    });
+
+    // --- Speed Buttons (styled like level buttons) ---
+    const speeds = [
+      { label: "Beginner", multiplier: 0.5 },
+      { label: "Normal", multiplier: 1 },
+      { label: "Advanced", multiplier: 2 },
+    ];
+
+    const spacing = 100;
+    const blockHeight = (speeds.length - 1) * spacing;
+    const startY = height / 2 - blockHeight / 2;
+
+    speeds.forEach((speed, i) => {
+      this._makeUIButton(
+        width / 2,
+        startY + i * spacing,
+        speed.label,
+        () => {
+          if ((this.game?.sfxVolume ?? this.sound.volume) > 0)
+            this.sound.play("selection");
+
+          // Stop menu music before gameplay
+          this.game.musicManager?.stop();
+
+          this.scene.start("MainScene", {
+            type: this.gameMode,
+            speedMultiplier: speed.multiplier
+          });
+        }
+      );
+    });
+
+    // ESC goes back
+    this._escKey = this.input.keyboard.addKey(
+      Phaser.Input.Keyboard.KeyCodes.ESC
+    );
+    this._escKey.on("down", () => this.scene.start("MainMenuScene"));
+  }
+
+  update() {
+    if (this.clouds) {
+      this.clouds.x -= this.cloudSpeed;
+      if (this.clouds.x + this.clouds.displayWidth / 2 < 0)
+        this.clouds.x = this.scale.width + this.clouds.displayWidth / 2;
+      if (this.clouds.x - this.clouds.displayWidth / 2 > this.scale.width)
+        this.clouds.x = -this.clouds.displayWidth / 2;
+    }
+  }
+
+  _makeUIButton(x, y, label, onClick) {
+    const w = 300;
+    const h = 60;
+
+    const border = this.add.rectangle(0, 0, w + 4, h + 4, 0x7f1a02);
+    border.setStrokeStyle(3, 0xdcc89f);
+
+    const rect = this.add.rectangle(0, 0, w, h, 0x7f1a02);
+    rect.setStrokeStyle(2, 0xdcc89f);
+
+    const text = this.add.text(0, 0, label, {
+      fontSize: "24px",
+      fontFamily: '"Jersey 10", sans-serif',
+      color: "#dcc89f",
+    }).setOrigin(0.5);
+
+    const btn = this.add.container(x, y, [border, rect, text]);
+
+    rect.setInteractive({ useHandCursor: true });
+
+    rect.on("pointerover", () => {
+      rect.setFillStyle(0xa8321a);
+      this.tweens.add({ targets: btn, scale: 1.05, duration: 140 });
+    });
+
+    rect.on("pointerout", () => {
+      rect.setFillStyle(0x7f1a02);
+      this.tweens.add({ targets: btn, scale: 1.0, duration: 140 });
+    });
+
+    rect.on("pointerdown", () => {
+      const t = this.tweens.add({
+        targets: btn,
+        scale: 0.92,
+        duration: 90,
+        yoyo: true,
+      });
+      t.once("complete", onClick);
+    });
+
+    return btn;
+  }
+}
