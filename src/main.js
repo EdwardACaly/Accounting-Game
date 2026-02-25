@@ -12,6 +12,9 @@ import { SettingsScene } from "./scenes/SettingScene";
 import { Leaderboard } from "./scenes/leaderboard";
 import MusicManager from "./gameobjects/MusicManager";
 
+// Added: speed selection for GM 1 and 2
+import { SpeedSelect } from "./scenes/SpeedSelect";
+
 // NEW: GameMode 3 (level select + 3 levels)
 import GM3LevelSelect from "./scenes/GM3LevelSelect";
 import GM3Level1 from "./scenes/GM3Level1";
@@ -27,7 +30,7 @@ const config = {
   height: 540,
   backgroundColor: "0xffffff",
   pixelArt: true,
-  roundPixel: false,
+  roundPixels: false,
   max: {
     width: window.innerWidth,
     height: window.innerHeight,
@@ -54,6 +57,8 @@ const config = {
     HudScene,
     GameOverScene,
     MainMenuScene,
+    //NEW speed select
+    SpeedSelect,  
     PauseScene,
     SettingsScene,
     // Removed: EquationScene,

@@ -15,34 +15,9 @@ export class Leaderboard extends Scene {
         this.add.image(0, 0, "home_bg")
             .setOrigin(0, 0)
             .setDisplaySize(this.scale.width, this.scale.height);
-
-        // --- Back button ---
-        const BASE_SCALE = 0.05;
-        const HOVER_SCALE = BASE_SCALE * 1.15;
-        const back = this.add.image(50, 40, "exitIcon")
-            .setInteractive()
-            .setScale(BASE_SCALE);
-
-        back.on("pointerover", () => {
-            this.tweens.add({ targets: back, scale: HOVER_SCALE, duration: 120, ease: "Sine.easeOut" });
-            back.setTint(0xffffff);
-        });
-        back.on("pointerout", () => {
-            this.tweens.add({ targets: back, scale: BASE_SCALE, duration: 120, ease: "Sine.easeIn" });
-            back.clearTint();
-        });
-        back.on("pointerdown", () => {
-            this.tweens.add({
-                targets: back,
-                scale: BASE_SCALE * 0.92,
-                duration: 70,
-                yoyo: true,
-                ease: "Sine.easeInOut",
-                onComplete: () => this.scene.start("MainMenuScene"),
-            });
-        });
-
-
+        this.add.image(0, 0, "home_fg")
+            .setOrigin(0, 0)
+            .setDisplaySize(this.scale.width, this.scale.height);
 
         // --- Center panel (larger to fit 10 rows + buttons) ---
         const panelWidth = 750;
@@ -70,16 +45,16 @@ export class Leaderboard extends Scene {
         ];
 
         const createButton = (x, y, labelText, onClick) => {
-            const border = this.add.rectangle(0, 0, 104, 64, 0x7f1a02).setDepth(3);
+            const border = this.add.rectangle(0, 0, 129, 54, 0x7f1a02).setDepth(3);
             border.setStrokeStyle(3, 0xdcc89f);
 
-            const rect = this.add.rectangle(0, 0, 100, 60, 0x7f1a02).setDepth(3);
+            const rect = this.add.rectangle(0, 0, 125, 50, 0x7f1a02).setDepth(3);
             const label = this.add.text(0, 0, labelText, {
-                fontSize: "22px",
+                fontSize: "30px",
                 fontFamily: '"Jersey 10", sans-serif',
                 color: "#dcc89f",
                 align: "center",
-                wordWrap: { width: 90, useAdvancedWrap: true },  // wrap text within button width
+                //wordWrap: { width: 90, useAdvancedWrap: true },  // wrap text within button width
             }).setOrigin(0.5).setDepth(3);
 
             const button = this.add.container(x, y, [border, rect, label]).setDepth(3);
@@ -108,8 +83,41 @@ export class Leaderboard extends Scene {
             return button;
         };
 
-        const buttonSpacing = 120;
-        const buttonRowY = panelY + panelHeight / 2 - 60;
+        // new Exit button
+        const button = createButton(panelX - panelWidth / 2 + 72.5, panelY - panelHeight / 2 + 35,
+                                    "Exit", () => this.scene.start("MainMenuScene"));
+
+        // OLD BACK BUTTON CODE
+        /*
+        // --- Back button ---
+        const BASE_SCALE = 0.05;
+        const HOVER_SCALE = BASE_SCALE * 1.15;
+        const back = this.add.image(50, 40, "exitIcon")
+            .setInteractive()
+            .setScale(BASE_SCALE);
+
+        back.on("pointerover", () => {
+            this.tweens.add({ targets: back, scale: HOVER_SCALE, duration: 120, ease: "Sine.easeOut" });
+            back.setTint(0xffffff);
+        });
+        back.on("pointerout", () => {
+            this.tweens.add({ targets: back, scale: BASE_SCALE, duration: 120, ease: "Sine.easeIn" });
+            back.clearTint();
+        });
+        back.on("pointerdown", () => {
+            this.tweens.add({
+                targets: back,
+                scale: BASE_SCALE * 0.92,
+                duration: 70,
+                yoyo: true,
+                ease: "Sine.easeInOut",
+                onComplete: () => this.scene.start("MainMenuScene"),
+            });
+        });
+        */
+
+        const buttonSpacing = 140;
+        const buttonRowY = panelY + panelHeight / 2 - 35;
         const buttonStartX = panelX - ((modes.length - 1) * buttonSpacing) / 2;
 
         modes.forEach((mode, i) => {
