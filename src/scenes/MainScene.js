@@ -433,7 +433,7 @@ export class MainScene extends Scene {
 
                 // Screen Shake
                 const cam = this.cameras.main;
-                cam.shake(200, 0.01);                
+                cam.shake(200, 0.005);                
             }
         }
     }
