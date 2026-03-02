@@ -430,6 +430,10 @@ export class MainScene extends Scene {
                 ball.been_in_wrong_basket = true;
                 ball.goToPit();
                 this.answer_stats.get(basket.type).incorrect += 1;
+
+                // Screen Shake
+                const cam = this.cameras.main;
+                cam.shake(200, 0.01);                
             }
         }
     }
