@@ -41,7 +41,7 @@ export class SpeedSelect extends Phaser.Scene {
     this.clouds = this.add.image(width / 2, height / 2 - 50, "home_clouds")
       .setOrigin(0.5)
       .setScale(0.5)
-      .setDepth(1);
+      .setDepth(0);
     this.cloudSpeed = 0.3;
 
     // --- Back Arrow ---
@@ -84,9 +84,9 @@ export class SpeedSelect extends Phaser.Scene {
 
     // --- Speed Buttons (styled like level buttons) ---
     const speeds = [
-      { label: "Beginner", multiplier: 0.5 },
-      { label: "Normal", multiplier: 1 },
-      { label: "Advanced", multiplier: 2 },
+      { label: "0.5x", multiplier: 0.5 },
+      { label: "1.0x", multiplier: 1 },
+      { label: "2.0x", multiplier: 2 },
     ];
 
     const spacing = 100;
@@ -131,7 +131,7 @@ export class SpeedSelect extends Phaser.Scene {
   }
 
   _makeUIButton(x, y, label, onClick) {
-    const w = 300;
+    const w = 200;
     const h = 60;
 
     const border = this.add.rectangle(0, 0, w + 4, h + 4, 0x7f1a02);
