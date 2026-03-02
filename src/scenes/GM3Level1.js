@@ -7,11 +7,8 @@ export default class GM3Level1 extends BaseGM3Scene {
     this.currentIndex = 0;
     this.questions = [];
     
-    //ORIGINAL CODE:
-    // this.currentCorrect = -1;
-    // this._uiNodes = [];
     
-    // NEW CODE:
+    
     //We keep currentCorrect around just in case, but add variables to handle text input states
     this.currentCorrect = -1; 
     this.currentInput = "";         // Stores the player's current typed numbers
@@ -28,18 +25,14 @@ export default class GM3Level1 extends BaseGM3Scene {
   }
 
 
-  //preload() {
-    //this.load.binary("gm3_easy_xlsx", "assets/UpdatedAccountingElements.xlsx");
-    //this.load.image("gm3_level1_bg", "assets/level1.jpg");
-  //}
 
   onTimeUp() { this._finishToGameOver("timeup"); }
 
   _finishToGameOver(reason = "completed") {
     if (this.timerEvent) this.timerEvent.remove(false);
     
-    // NEW CODE: 
-    // Clean up the keyboard listener so it doesn't carry over into the GameOver scene
+    
+    //Clean up the keyboard listener so it doesn't carry over into the GameOver scene
     this.input.keyboard.off('keydown'); 
     
     this.scene.start("GameOverScene", { score: this.score, mode: "GM3-Level1", reason });
@@ -65,24 +58,11 @@ export default class GM3Level1 extends BaseGM3Scene {
     let emptyStreak = 0;
     const MAX_SCAN_ROWS = 2000;
 
-    // --- ORIGINAL COMPLEX LOOP (Commented Out) ---
-    /* // This loop tried to detect green backgrounds or bold text across multiple columns.
-    // It is disabled in favor of the simpler Column F + Column K approach.
-    for (let r = 4; r <= MAX_SCAN_ROWS; r++) {
-      const qCell = sh[`F${r}`], gCell = sh[`G${r}`], hCell = sh[`H${r}`], iCell = sh[`I${r}`], jCell = sh[`J${r}`], kCell = sh[`K${r}`];
-      const question = this._getCellText(qCell);
-      // ... (rest of old logic) ...
-      let correctIndex = this._fromKCell(kCell);
-      if (correctIndex === -1) correctIndex = this._detectGoodGreen([gCell, hCell, iCell, jCell]);
-      if (correctIndex === -1) continue;
-      rows.push({ question, answers: [A, B, C, D], correctIndex });
-    }
-    */
 
-    // --- NEW SIMPLIFIED LOOP ---
-    // This expects:
-    // Column F: The Question Text
-    // Column K: The Correct Answer (Number only)
+    
+    //This expects:
+    //Column F: The Question Text
+    //Column K: The Correct Answer (Number only)
     for (let r = 4; r <= MAX_SCAN_ROWS; r++) {
       const qCell = sh[`F${r}`]; 
       const aCell = sh[`K${r}`]; 
@@ -90,7 +70,8 @@ export default class GM3Level1 extends BaseGM3Scene {
       const question = this._getCellText(qCell);
       const rawAnswer = this._getCellText(aCell);
 
-      // Stop if we hit 10 completely empty rows
+      //Stop if we hit 10 completely empty rows
+      //a checker to prevent overscanning 
       if (!question && !rawAnswer) {
         emptyStreak++; 
         if (emptyStreak >= 10) break; 
@@ -98,11 +79,12 @@ export default class GM3Level1 extends BaseGM3Scene {
       } 
       emptyStreak = 0;
 
-      // Clean the answer: remove $, commas, spaces, letters
-      // e.g., "$1,200" -> "1200"
+      //Clean the answer: remove $, commas, spaces, letters, etc
+      //e.g., "$1,200" -> "1200"
+      //not really needed for current version but here in case of updates 
       const numericCorrect = rawAnswer.replace(/[^0-9]/g, '');
 
-      // Only add row if we have a question AND a valid numeric answer
+      //Only add row if we have a question AND a valid numeric answer
       if (question && numericCorrect.length > 0) {
         rows.push({ 
           question: question, 
@@ -129,11 +111,11 @@ export default class GM3Level1 extends BaseGM3Scene {
     if (!this.scoreText) {
       this.scoreText = this.add.text(20, 16, "", {
         fontSize: "40px", color: "#dcc89f", fontFamily: '"Jersey 10", sans-serif',
-      }).setDepth(6).setOrigin(0, 0).setStroke("#7f1a02", 3);
+      }).setDepth(6).setOrigin(0, 0).setStroke("#dd1e1e", 3);
     } else {
       this.scoreText.setPosition(20, 2).setOrigin(0, 0)
         .setFontFamily('"Jersey 10", sans-serif').setFontSize(40)
-        .setColor("#dcc89f").setStroke("#7f1a02", 3).setDepth(6);
+        .setColor("#dcc89f").setStroke("#dd1e1e", 3).setDepth(6);
     }
     this._updateScoreUI();
 
@@ -164,36 +146,29 @@ export default class GM3Level1 extends BaseGM3Scene {
     // 4. Input UI (Replaces Multiple Choice Grid)
     // -------------------------------------------------------------------------
 
-    // --- ORIGINAL MULTIPLE CHOICE GRID (Commented Out) ---
-    /*
-    const cols = 2, totalBoxes = 4;
-    // ... (grid calculation logic) ...
-    const makeAnswer = (idx) => { ... };
-    this.ansNodes = [makeAnswer(0), makeAnswer(1), ...];
-    // ... (positioning loop) ...
-    */
-
     // --- NEW TEXT INPUT UI ---
-    const inputBoxW = 400;
+    //change these for the size of the input boz
+    const inputBoxW = 300;
     const inputBoxH = 80;
     
     // The visual box container for the input
-    this.inputBox = this.add.rectangle(width / 2, height * 0.55, inputBoxW, inputBoxH, 0xdcc89f)
+    //change these values for placeement
+    this.inputBox = this.add.rectangle(width / 2, height * 0.65, inputBoxW, inputBoxH, 0xdcc89f)
       .setStrokeStyle(4, 0x7f1a02).setDepth(5);
 
     // The text object that displays what the user types
-    this.inputText = this.add.text(width / 2, height * 0.55, "", {
+    this.inputText = this.add.text(width / 2, height * 0.65, "", {
       fontSize: "48px", color: "#7f1a02", fontFamily: '"Jersey 10", sans-serif',
     }).setOrigin(0.5).setDepth(6);
 
     // Feedback text (Correct! / Incorrect!)
-    this.feedbackText = this.add.text(width / 2, height * 0.68, "", {
-      fontSize: "36px", color: "#7f1a02", fontFamily: '"Jersey 10", sans-serif', align: "center"
+    this.feedbackText = this.add.text(width / 2, height * 0.80, "", {
+      fontSize: "36px", color: "#fcfcfc", fontFamily: '"Jersey 10", sans-serif', align: "center"
     }).setOrigin(0.5).setDepth(6).setAlpha(0);
 
     // --- BLINKING CURSOR ---
     // A vertical line that simulates a text cursor
-    this.cursor = this.add.rectangle(width / 2 + 4, height * 0.55, 4, 40, 0x7f1a02)
+    this.cursor = this.add.rectangle(width / 2 + 4, height * 0.65, 4, 40, 0x7f1a02)
       .setDepth(6).setAlpha(0);
     
     // Animate the cursor to blink forever
@@ -213,18 +188,7 @@ export default class GM3Level1 extends BaseGM3Scene {
       fontFamily: '"Jersey 10", sans-serif',
     }).setOrigin(0.5).setDepth(15).setStroke("#7f1a02", 3).setAlpha(0);
 
-    // -------------------------------------------------------------------------
-    // 5. Visibility and Event Listeners
-    // -------------------------------------------------------------------------
 
-    // Group all UI elements so we can hide/show them together
-    // --- ORIGINAL UI LIST (Commented Out) ---
-    /*
-    this._uiNodes = [
-      this.qText, this.timerText, this.scoreText,
-      ...this.ansNodes.flatMap(n => [n.rect, n.txt]),
-    ];
-    */
 
     // --- NEW UI LIST ---
     this._uiNodes = [
@@ -246,7 +210,7 @@ export default class GM3Level1 extends BaseGM3Scene {
     this._showPreStartCard();
   }
 
-  //NEW CODE BLOCK: Keyboard handling logic
+  //Keyboard handling logic
   //Listens for numbers, backspace, and the enter key to submit.
   _handleKeydown(event) {
     if (!this.acceptingInput) return; // Ignore typing if not ready
@@ -286,7 +250,7 @@ export default class GM3Level1 extends BaseGM3Scene {
       this.feedbackText.setText("Correct!").setColor("#2e7d32").setAlpha(1);
     } else {
       this.inputBox.setStrokeStyle(4, 0x8b0000); // Turn box border red
-      this.feedbackText.setText(`Incorrect!\nCorrect answer: ${item.correctAnswer}`).setColor("#8b0000").setAlpha(1);
+      this.feedbackText.setText(`Incorrect!\nCorrect answer: ${item.correctAnswer}`).setColor("#ec1b1b").setAlpha(1);
     }
 
     // Delay so they can read the feedback, then automatically advance to next question
@@ -391,17 +355,9 @@ export default class GM3Level1 extends BaseGM3Scene {
     if (this.currentIndex >= this.questions.length) return this._finishToGameOver("completed");
     const item = this.questions[this.currentIndex];
     
-    // ORIGINAL CODE:
-    /*
-    this.currentCorrect = item.correctIndex;
-    this.qText.setText(item.question);
-    this.ansNodes.forEach((n, i) => {
-      n.rect.setFillStyle(0xdcc89f);
-      n.txt.setText(item.answers[i] ?? "");
-    });
-    */
+    
 
-    // NEW CODE: Reset the input UI for the fresh question
+    //Reset the input UI for the fresh question
     this.qText.setText(item.question);
     this.currentInput = "";
     this.inputText.setText("");
@@ -416,28 +372,7 @@ export default class GM3Level1 extends BaseGM3Scene {
     if (show) this._setGameplayUIVisible(true);
   }
 
-  // ORIGINAL CODE: (Handling clicks on multiple choice boxes)
-  /*
-  _chooseAnswer(i) {
-    if (!this.input.enabled) return;
-    this.input.enabled = false;
-    const c = this.currentCorrect;
-    if (i === c) {
-      this.onScored(100);
-      this._updateScoreUI();
-      this._showPlus100();
-      this.ansNodes[i].rect.setFillStyle(0x2e7d32);
-    } else {
-      this.ansNodes[i].rect.setFillStyle(0x8b0000);
-      this.ansNodes[c]?.rect.setFillStyle(0x2e7d32);
-    }
-    this.time.delayedCall(650, () => {
-      this.currentIndex++;
-      this._showCurrent(true);
-      this.input.enabled = true;
-    });
-  }
-  */
+  
 
   _startCountdown() {
     this.input.enabled = false;
@@ -473,7 +408,7 @@ export default class GM3Level1 extends BaseGM3Scene {
       this._updateScoreUI();
       this.input.enabled = true;
       
-      // NEW CODE: Trigger the flag to allow keyboard input once the game actually begins
+      //trigger the flag to allow keyboard input once the game actually begins
       this.acceptingInput = true; 
     });
   }
