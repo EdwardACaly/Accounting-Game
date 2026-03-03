@@ -21,18 +21,11 @@ export default class GM3Level1 extends BaseGM3Scene {
   //preload version for local 
 
 
-  //preload() {
-    //this.load.binary("gm3_easy_xlsx", "assets/UpdatedAccountingElements_v2.26.xlsx");
-    //this.load.image("gm3_level1_bg", "assets/level1.jpg");
-  //}
-
-  //repload for the web version 
-  //right now it looks like the asset is implied here on the web version 
-  //hopeful later fix
   preload() {
-    this.load.binary("gm3_easy_xlsx", "UpdatedAccountingElements_v2.26.xlsx");
-    this.load.image("gm3_level1_bg", "level1.jpg");
+    this.load.binary("gm3_easy_xlsx", "/assets/UpdatedAccountingElements_v2.26.xlsx");
+    this.load.image("gm3_level1_bg", "/assets/level1.jpg");
   }
+
 
 
   onTimeUp() { this._finishToGameOver("timeup"); }
