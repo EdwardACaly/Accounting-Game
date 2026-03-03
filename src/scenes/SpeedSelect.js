@@ -108,7 +108,7 @@ export class SpeedSelect extends Phaser.Scene {
     const speeds = [
       { label: "0.5x", multiplier: 0.5 },
       { label: "1.0x", multiplier: 1 },
-      { label: "2.0x", multiplier: 2 },
+      { label: "1.5x", multiplier: 1.5 },
     ];
 
     const spacing = 100;

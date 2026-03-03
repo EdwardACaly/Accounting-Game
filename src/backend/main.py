@@ -3,7 +3,8 @@ import os
 from datetime import datetime
 from typing import List, Literal, TypedDict, Optional
 from pydantic import BaseModel
-from fastapi import FastAPI, HTTPException, Body, Query, Path
+from fastapi import FastAPI, HTTPException, Body, Query, Path, Request
+from fastapi.responses import RedirectResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 import psycopg2
@@ -11,6 +12,8 @@ from psycopg2.pool import SimpleConnectionPool
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 import re
+from onelogin.saml2.auth import OneLogin_Saml2_Auth
+from onelogin.saml2.utils import OneLogin_Saml2_Utils
 
 load_dotenv()
 
@@ -294,3 +297,76 @@ def preview_rank(game: str, score: int, n: int = TOP_N):
             )
     finally:
         pool.putconn(conn)
+
+# SAML -----------------------------------------------------------------------------------------
+SAML_PATH = os.path.join(os.path.dirname(__file__), 'saml')
+
+def prepare_fastapi_request(request: Request, body: dict = {}):
+    return {
+        'https': 'on' if request.url.scheme == 'https' else 'off',
+        'http_host': request.headers.get('host', request.url.hostname),
+        'script_name': request.url.path,
+        'get_data': dict(request.query_params),
+        'post_data': body
+    }
+
+# returns SP metadata XML, which IdP admins can use to configure the connection. No auth required since it's public info.
+@app.get('/saml/metadata', tags=["SAML"])
+async def saml_metadata(request: Request):
+    req = prepare_fastapi_request(request)
+    auth = OneLogin_Saml2_Auth(req, custom_base_path=SAML_PATH)
+    settings = auth.get_settings()
+    metadata = settings.get_sp_metadata()
+    errors = settings.validate_metadata(metadata)
+    if errors:
+        return Response(content=f"Metadata error: {', '.join(errors)}", status_code=500)
+    return Response(content=metadata, media_type='text/xml')
+
+# redirects to auburn login page
+@app.get('/saml/login', tags=["SAML"])
+async def saml_login(request: Request):
+    req = prepare_fastapi_request(request)
+    auth = OneLogin_Saml2_Auth(req, custom_base_path=SAML_PATH)
+    return RedirectResponse(auth.login())
+
+# IdP posts SAML response here after login, we then validate it and extract user info
+@app.post('/saml/acs', tags=["SAML"])
+async def saml_acs(request: Request):
+    form = await request.form()
+    req = prepare_fastapi_request(request, dict(form))
+    auth = OneLogin_Saml2_Auth(req, custom_base_path=SAML_PATH)
+    auth.process_response()
+    errors = auth.get_errors()
+
+    if errors:
+        return Response(
+            content=f"SAML error: {', '.join(errors)} — {auth.get_last_error_reason()}",
+            status_code=400
+        )
+
+    if not auth.is_authenticated():
+        return Response(content="Not authenticated", status_code=403)
+
+    # grab student info
+    nameid = auth.get_nameid()
+    attrs = auth.get_attributes()
+
+    return RedirectResponse('/', status_code=302)
+
+# handles log out requests/responses
+@app.get('/saml/sls', tags=["SAML"])
+async def saml_sls(request: Request):
+    req = prepare_fastapi_request(request)
+    auth = OneLogin_Saml2_Auth(req, custom_base_path=SAML_PATH)
+    url = auth.process_slo()
+    errors = auth.get_errors()
+    if errors:
+        return Response(content=f"SLO error: {', '.join(errors)}", status_code=400)
+    return RedirectResponse(url or '/')
+
+# initiates logout
+@app.get('/saml/logout', tags=["SAML"])
+async def saml_logout(request: Request):
+    req = prepare_fastapi_request(request)
+    auth = OneLogin_Saml2_Auth(req, custom_base_path=SAML_PATH)
+    return RedirectResponse(auth.logout())
