@@ -2,11 +2,10 @@
 import os
 from datetime import datetime
 from typing import List, Literal, TypedDict, Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from fastapi import FastAPI, HTTPException, Body, Query, Path, Request
 from fastapi.responses import RedirectResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
 import psycopg2
 from psycopg2.pool import SimpleConnectionPool
 from contextlib import asynccontextmanager
@@ -20,7 +19,6 @@ load_dotenv()
 DATABASE_URL = os.getenv("DATABASE_URL")
 CORS_ORIGINS = [o.strip() for o in os.getenv("CORS_ORIGINS", "").split(",") if o.strip()]
 ALLOWED_GAMES = {"game1", "game2", "game3-1", "game3-2", "game3-3"}
-USERNAME_RE = re.compile(r"^[A-Za-z]{3}$")
 TOP_N = 100
 
 GAME_ALIASES = {
@@ -42,7 +40,7 @@ async def lifespan(app: FastAPI):
         pool.closeall()
         pool = None
 
-app = FastAPI(lifespan=lifespan, title="Arcade Leaderboard API", version="1.0")
+app = FastAPI(lifespan=lifespan, title="Arcade Leaderboard & Analytics API", version="2.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -57,33 +55,75 @@ class LeaderboardRow(BaseModel):
     score: int
     username: str
 
+# --- NEW SQL QUERIES FOR ANALYTICS TABLES ---
 
 SQL_GET_LEADERBOARD = """
+WITH BestScores AS (
+    SELECT username, MAX(score) as max_score
+    FROM public.game_analytics
+    WHERE game = %s
+    GROUP BY username
+)
 SELECT
-  RANK() OVER (ORDER BY score DESC, created_at ASC, username ASC) AS rank,
-  score,
-  username
-FROM scores
-WHERE scores.game = %s
+    RANK() OVER (ORDER BY max_score DESC) AS rank,
+    max_score AS score,
+    UPPER(SUBSTRING(username, 1, 3)) AS username
+FROM BestScores
 ORDER BY rank
 LIMIT %s;
 """
 
-# SELECT
-#   RANK() OVER (ORDER BY score DESC, created_at ASC, username ASC) AS rank,
-#   score,
-#   username
-# FROM scores
-# WHERE scores.game = 'game1'
-# ORDER BY rank
-# LIMIT 10;
+SQL_UPSERT_USER = """
+INSERT INTO public.player_profiles (username, first_name, last_name, section)
+VALUES (%s, %s, %s, %s)
+ON CONFLICT (username) DO UPDATE SET
+    first_name = COALESCE(EXCLUDED.first_name, public.player_profiles.first_name),
+    last_name = COALESCE(EXCLUDED.last_name, public.player_profiles.last_name),
+    section = COALESCE(EXCLUDED.section, public.player_profiles.section);
+"""
+
+SQL_INSERT_SESSION = """
+INSERT INTO public.game_analytics (game, username, score, time_played_seconds)
+VALUES (%s, %s, %s, %s)
+RETURNING id;
+"""
+
+SQL_GET_CURRENT_RANK = """
+WITH BestScores AS (
+    SELECT username, MAX(score) as max_score
+    FROM public.game_analytics
+    WHERE game = %s
+    GROUP BY username
+)
+SELECT COUNT(*) + 1 FROM BestScores WHERE max_score > %s;
+"""
+
+SQL_PREVIEW = """
+WITH BestScores AS (
+    SELECT username, MAX(score) as max_score
+    FROM public.game_analytics
+    WHERE game = %s
+    GROUP BY username
+), stats AS (
+  SELECT
+    COUNT(*) FILTER (WHERE max_score > %s) AS cnt_gt,
+    COUNT(*) FILTER (WHERE max_score = %s) AS cnt_eq,
+    COUNT(*)                             AS rows_total
+  FROM BestScores
+)
+SELECT
+  1 + cnt_gt + cnt_eq AS preview_rank,
+  (rows_total < %s) OR (1 + cnt_gt + cnt_eq) <= %s AS qualifies,
+  rows_total AS current_rows
+FROM stats;
+"""
 
 
 @app.get(
     "/leaderboard/{game}",
     response_model=List[LeaderboardRow],
     summary="Get leaderboard for a game",
-    description="Returns rank, score, username for the requested game."
+    description="Returns rank, score, 3-letter username for the requested game based on all-time bests."
 )
 def get_leaderboard(
     game: str = Path(..., description="Game identifier (e.g., 'game1')"),
@@ -107,93 +147,33 @@ def get_leaderboard(
     finally:
         pool.putconn(conn)
 
-# WITH ranked AS (
-#   SELECT score
-#   FROM scores
-#   WHERE game = $1
-#   ORDER BY score DESC, created_at ASC, username ASC
-#   OFFSET $2 - 1   -- $2 = N
-#   LIMIT 1
-# )
-# SELECT score FROM ranked;
 
-# INSERT INTO scores (game, username, score)
-# VALUES ($1, UPPER($2), $3)
-# ON CONFLICT (game, username)
-# DO UPDATE SET
-#   score = GREATEST(scores.score, EXCLUDED.score),
-#   created_at = CASE
-#                  WHEN EXCLUDED.score > scores.score THEN NOW()
-#                  ELSE scores.created_at
-#                END
-# RETURNING game, username, score;
-
-SQL_GET_CUTOFF = """
--- Nth best score for this game (NULL if fewer than N rows)
-WITH ranked AS (
-  SELECT score
-  FROM public.scores
-  WHERE game = %s
-  ORDER BY score DESC, created_at ASC, username ASC
-  OFFSET %s - 1
-  LIMIT 1
-)
-SELECT score FROM ranked;
-"""
-
-SQL_UPSERT = """
-INSERT INTO public.scores (game, username, score)
-VALUES (%s, %s, %s)
-RETURNING id, game, score;
-"""
-
-SQL_PRUNE = """
--- Keep only Top-N rows for this game (score DESC, then created_at, then username)
-WITH to_drop AS (
-  SELECT id
-  FROM public.scores
-  WHERE game = %s
-  ORDER BY score DESC, created_at ASC, username ASC
-  OFFSET %s
-)
-DELETE FROM public.scores s
-USING to_drop d
-WHERE s.id = d.id;
-"""
-
-SQL_GET_RANK_FOR_USER = """
-SELECT rank FROM (
-  SELECT
-    id,
-    RANK() OVER (ORDER BY score DESC, created_at ASC, username ASC) AS rank
-  FROM public.scores
-  WHERE game = %s
-) r
-WHERE r.id = %s;
-"""
-
+# --- UPDATED PAYLOAD MODELS ---
 class SubmitPayload(BaseModel):
     game: str = Field(..., examples=["game1"])
-    username: str = Field(..., min_length=3, max_length=3, examples=["ABC"])
+    username: str = Field(..., examples=["sms0184"]) 
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    section: Optional[str] = None
     score: int = Field(..., ge=0, examples=[12345])
+    time_played: int = Field(0, ge=0, examples=[120]) 
 
 class SubmitResult(BaseModel):
-    accepted: bool          # True if it made/stayed in Top-N after pruning
-    rank: Optional[int]     # rank if accepted, else None
-    score: int              # stored/best score for that username in this game
+    accepted: bool          
+    rank: Optional[int]     
+    score: int              
     username: str
     game: str
 
-@app.post("/submit", response_model=SubmitResult, summary="Submit a score (Top-N only)")
+@app.post("/submit", response_model=SubmitResult, summary="Submit a score and update user profile")
 def submit_score(payload: SubmitPayload = Body(...)):
 
     game = GAME_ALIASES.get(payload.game.lower(), payload.game.lower())
 
     if game not in ALLOWED_GAMES:
         raise HTTPException(status_code=400, detail="Unknown game")
-    if not USERNAME_RE.fullmatch(payload.username):
-        raise HTTPException(status_code=400, detail="Username must be 3 letters A–Z")
-    username = payload.username.upper()
+    
+    username = payload.username.lower()
 
     if pool is None:
         raise HTTPException(status_code=500, detail="DB not initialized")
@@ -202,57 +182,37 @@ def submit_score(payload: SubmitPayload = Body(...)):
     try:
         with conn:
             with conn.cursor() as cur:
-                # 1) Check Nth cutoff (None if board not full)
-                cur.execute(SQL_GET_CUTOFF, (game, TOP_N))
-                row = cur.fetchone()
-                cutoff = row[0] if row else None
+                # 1) Upsert User Profile
+                cur.execute(SQL_UPSERT_USER, (
+                    username, 
+                    payload.first_name, 
+                    payload.last_name, 
+                    payload.section
+                ))
 
+                # 2) Insert Game Session (Ledger)
+                cur.execute(SQL_INSERT_SESSION, (
+                    game, 
+                    username, 
+                    payload.score, 
+                    payload.time_played
+                ))
 
-                cur.execute(SQL_UPSERT, (game, username, payload.score))
-                row_id, stored_game, stored_score = cur.fetchone()
-
-                # 3) Prune beyond Top-N for this game
-                cur.execute(SQL_PRUNE, (payload.game, TOP_N))
-
-
-                # 5) Fetch its rank (by id, not username)
-                cur.execute(SQL_GET_RANK_FOR_USER, (payload.game, row_id))
-                r = cur.fetchone()
-                if not r:
-                    # Rare case: pruned before rank check
-                    return SubmitResult(
-                        accepted=False,
-                        rank=None,
-                        score=stored_score,
-                        username=username,
-                        game=payload.game,
-                    )
+                # 3) Fetch current rank for this score
+                cur.execute(SQL_GET_CURRENT_RANK, (game, payload.score))
+                rank_row = cur.fetchone()
+                rank = rank_row[0] if rank_row else 1
 
                 return SubmitResult(
                     accepted=True,
-                    rank=int(r[0]),
-                    score=stored_score,
+                    rank=int(rank),
+                    score=payload.score,
                     username=username,
-                    game=stored_game,
+                    game=game,
                 )
     finally:
         pool.putconn(conn)
 
-SQL_PREVIEW = """
-WITH stats AS (
-  SELECT
-    COUNT(*) FILTER (WHERE score > %s) AS cnt_gt,
-    COUNT(*) FILTER (WHERE score = %s) AS cnt_eq,
-    COUNT(*)                             AS rows_total
-  FROM public.scores
-  WHERE game = %s
-)
-SELECT
-  1 + cnt_gt + cnt_eq AS preview_rank,
-  (rows_total < %s) OR (1 + cnt_gt + cnt_eq) <= %s AS qualifies,
-  rows_total AS current_rows
-FROM stats;
-"""
 
 class PreviewResponse(BaseModel):
     preview_rank: int
@@ -270,103 +230,4 @@ def preview_rank(game: str, score: int, n: int = TOP_N):
     if pool is None:
         raise HTTPException(status_code=500, detail="DB not initialized")
     if game not in ALLOWED_GAMES:
-        raise HTTPException(status_code=400, detail="Unknown game")
-    if score < 0:
-        raise HTTPException(status_code=400, detail="Score must be >= 0")
-
-
-    conn = pool.getconn()
-    try:
-        with conn.cursor() as cur:
-            # Note the order of params matches %s positions
-            cur.execute(SQL_PREVIEW, (score, score, game, n, n))
-            r = cur.fetchone()
-            if not r:
-                # empty table case shouldn't happen because query always returns 1 row
-                return PreviewResponse(
-                    preview_rank=1, qualifies=True, current_rows=0, top_n=n, game=game, score=score
-                )
-            preview_rank, qualifies, current_rows = r
-            return PreviewResponse(
-                preview_rank=int(preview_rank),
-                qualifies=bool(qualifies),
-                current_rows=int(current_rows),
-                top_n=n,
-                game=game,
-                score=score,
-            )
-    finally:
-        pool.putconn(conn)
-
-# SAML -----------------------------------------------------------------------------------------
-SAML_PATH = os.path.join(os.path.dirname(__file__), 'saml')
-
-def prepare_fastapi_request(request: Request, body: dict = {}):
-    return {
-        'https': 'on' if request.url.scheme == 'https' else 'off',
-        'http_host': request.headers.get('host', request.url.hostname),
-        'script_name': request.url.path,
-        'get_data': dict(request.query_params),
-        'post_data': body
-    }
-
-# returns SP metadata XML, which IdP admins can use to configure the connection. No auth required since it's public info.
-@app.get('/saml/metadata', tags=["SAML"])
-async def saml_metadata(request: Request):
-    req = prepare_fastapi_request(request)
-    auth = OneLogin_Saml2_Auth(req, custom_base_path=SAML_PATH)
-    settings = auth.get_settings()
-    metadata = settings.get_sp_metadata()
-    errors = settings.validate_metadata(metadata)
-    if errors:
-        return Response(content=f"Metadata error: {', '.join(errors)}", status_code=500)
-    return Response(content=metadata, media_type='text/xml')
-
-# redirects to auburn login page
-@app.get('/saml/login', tags=["SAML"])
-async def saml_login(request: Request):
-    req = prepare_fastapi_request(request)
-    auth = OneLogin_Saml2_Auth(req, custom_base_path=SAML_PATH)
-    return RedirectResponse(auth.login())
-
-# IdP posts SAML response here after login, we then validate it and extract user info
-@app.post('/saml/acs', tags=["SAML"])
-async def saml_acs(request: Request):
-    form = await request.form()
-    req = prepare_fastapi_request(request, dict(form))
-    auth = OneLogin_Saml2_Auth(req, custom_base_path=SAML_PATH)
-    auth.process_response()
-    errors = auth.get_errors()
-
-    if errors:
-        return Response(
-            content=f"SAML error: {', '.join(errors)} — {auth.get_last_error_reason()}",
-            status_code=400
-        )
-
-    if not auth.is_authenticated():
-        return Response(content="Not authenticated", status_code=403)
-
-    # grab student info
-    nameid = auth.get_nameid()
-    attrs = auth.get_attributes()
-
-    return RedirectResponse('/', status_code=302)
-
-# handles log out requests/responses
-@app.get('/saml/sls', tags=["SAML"])
-async def saml_sls(request: Request):
-    req = prepare_fastapi_request(request)
-    auth = OneLogin_Saml2_Auth(req, custom_base_path=SAML_PATH)
-    url = auth.process_slo()
-    errors = auth.get_errors()
-    if errors:
-        return Response(content=f"SLO error: {', '.join(errors)}", status_code=400)
-    return RedirectResponse(url or '/')
-
-# initiates logout
-@app.get('/saml/logout', tags=["SAML"])
-async def saml_logout(request: Request):
-    req = prepare_fastapi_request(request)
-    auth = OneLogin_Saml2_Auth(req, custom_base_path=SAML_PATH)
-    return RedirectResponse(auth.logout())
+        raise

@@ -189,9 +189,15 @@ export default class LoginScreen extends Phaser.Scene {
     console.log("Preparing to send payload:", payload);
 
     try {
-      // IMPORTANT: Swap this URL with your actual backend's local address!
-      // Example: "http://localhost:3000/api/login"
-      const backendURL = "https://jsonplaceholder.typicode.com/posts"; 
+
+        const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+    
+        const apiBase = isLocal 
+      ? "http://localhost:3000/api" 
+      : "http://accounting-game.cse.eng.auburn.edu/api"; 
+
+        // Attach the specific route (make sure /login matches your backend's actual route!)
+        const backendURL = `${apiBase}/login`;
       
       const response = await fetch(backendURL, {
         method: "POST",
