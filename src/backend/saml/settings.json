@@ -1,0 +1,30 @@
+{
+    "strict": true,
+    "debug": true,
+    "sp": {
+        "entityId": "https://accounting-game.cse.eng.auburn.edu/saml/metadata",
+        "assertionConsumerService": {
+            "url": "https://accounting-game.cse.eng.auburn.edu/saml/acs",
+            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST"
+        },
+        "singleLogoutService": {
+            "url": "https://accounting-game.cse.eng.auburn.edu/saml/sls",
+            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect"
+        },
+        "NameIDFormat": "urn:oasis:names:tc:SAML:2.0:nameid-format:persistent",
+        "x509cert": "",
+        "privateKey": ""
+    },
+    "idp": {
+        "entityId": "https://authenticate.auburn.edu:8443/saml/saml2/idp/metadata.php",
+        "singleSignOnService": {
+            "url": "https://authenticate.auburn.edu:8443/saml/saml2/idp/SSOService.php",
+            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect"
+        },
+        "singleLogoutService": {
+            "url": "https://authenticate.auburn.edu:8443/saml/saml2/idp/SingleLogoutService.php",
+            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect"
+        },
+        "x509cert": "MIID6zCCAtOgAwIBAgIJAI6/gi0cNXGtMA0GCSqGSIb3DQEBCwUAMIGLMQswCQYDVQQGEwJVUzEQMA4GA1UECAwHQWxhYmFtYTEPMA0GA1UEBwwGQXVidXJuMRowGAYDVQQKDBFBdWJ1cm4gVW5pdmVyc2l0eTEpMCcGA1UECwwgT2ZmaWNlIG9mIEluZm9ybWF0aW9uIFRlY2hub2xvZ3kxEjAQBgNVBAMMCWF1dGgtc2FtbDAeFw0yMDAzMTExNzM2MTZaFw00MDAzMDYxNzM2MTZaMIGLMQswCQYDVQQGEwJVUzEQMA4GA1UECAwHQWxhYmFtYTEPMA0GA1UEBwwGQXVidXJuMRowGAYDVQQKDBFBdWJ1cm4gVW5pdmVyc2l0eTEpMCcGA1UECwwgT2ZmaWNlIG9mIEluZm9ybWF0aW9uIFRlY2hub2xvZ3kxEjAQBgNVBAMMCWF1dGgtc2FtbDCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBALwVnvDZqiHDQ5cOf3Il53rIEGIKi9U0CfxuW/7IVWbkzERi53+5hgUGYah5XqYV+ICCbLiKKhut+bnGuiWFP6L9HX+B3w97iJ4neg/GdmCxdWgPxW+NJvKy4dAXyQ2SMQWZnCmiRkeOkiOmFYhzZNfg6PrJGVpchgPHSpdLfU4F8KeYCiO1jfJlGBS12oJgJD/98B3keVKGqg05q3V3wFUepVqqwPKxdZcGCqct8w1nxZcHgUt8NyhpxNzl7XD41YCHUVQsy2SOup/5ltR9GSBoLjgIdi8yi3DT2YIuDfJO94UVDwQmMDo8uiL2KOIfh8qE27VqW44g+tUl+QDfPbUCAwEAAaNQME4wHQYDVR0OBBYEFEUso3sxDQX040qhLMnnN42mYnsuMB8GA1UdIwQYMBaAFEUso3sxDQX040qhLMnnN42mYnsuMAwGA1UdEwQFMAMBAf8wDQYJKoZIhvcNAQELBQADggEBAFAxcEj5cwr5MMJSovMwQYc1gV4dqigrFI4Q+/1dlBjC3qXGNgnKbCj90wZT2PREvRPflaIR0MfN81n60CSjsNPCmoWFU5ZfZdQ8VCeNUGCsPeoTGdSF8MakvTjnAPCqZSXBWDslpq7rMlg23jEx6hvEK4u+hZ1z8L/+e4o4kkV50FTJb/mZ0ww4W6682YjqrBz/9aKXJfqDp7U7a7XglxjrW46+sKTTiXi4pYUoPF3IEE6CipVo5VJx1MvpNjCNCgHMfhzQyJuHyYkw5uWVAf43szOgJsQwebErn/fA1sC5BzFVWsKUx6VR3S9JLtlb85c5ZDnJraGK4ErbbcHEnlU="
+    }
+}

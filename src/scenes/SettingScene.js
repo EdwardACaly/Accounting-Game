@@ -106,6 +106,22 @@ export class SettingsScene extends Scene {
         //const buttonRowY = panelY + panelHeight / 2 - 35;
         //const buttonStartX = panelX - ((modes.length - 1) * buttonSpacing) / 2;
 
+<<<<<<< HEAD
+=======
+
+        // Login Screen Test Button
+        createButton(
+            panelX,                           // Centered horizontally
+            panelY + panelHeight / 2 - 60,    
+            "Login Test",                     
+            () => {
+                // Stop any playing music if necessary, then switch scenes
+                if ((this.game.sfxVolume ?? this.sound.volume) > 0) this.sound.play("selection");
+                this.scene.start("LoginScreen"); 
+            }
+        );
+
+>>>>>>> origin/main
         // Volume label
         this.add.text(labelX, panelHeight / 2 - 100, "Volume", {
             fontFamily: '"Jersey 10", sans-serif',

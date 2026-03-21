@@ -30,6 +30,7 @@ export default class GM3Level3 extends BaseGM3Scene {
             score: this.score,
             mode: "GM3-Level3",
             reason,
+            timeSpentPlaying: Math.floor((this.time.now - this.startTime) / 1000),
         });
     }
 

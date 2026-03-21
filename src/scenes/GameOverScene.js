@@ -14,6 +14,8 @@ export class GameOverScene extends Scene {
     // - Others might send: { points, gameKey }
     this.end_points = (data && (data.points ?? data.score)) || 0;
     this.gameKey = (data && (data.gameKey ?? data.mode)) || "MainScene";
+    // Catch the time played from the main scene (default to 0 if missing)
+    this.timeSpentPlaying = (data && data.timeSpentPlaying) || 0; 
   }
 
   // Normalize whatever we received into an actual scene key to restart
@@ -28,9 +30,7 @@ export class GameOverScene extends Scene {
   // --- Helpers to globally suspend / resume Phaser keyboard while typing ---
   _suspendKeys() {
     if (this.input?.keyboard) {
-      // Stop Phaser from intercepting any key events
       this.input.keyboard.enabled = false;
-      // Clear any global captures (prevents default on WASD, space, etc.)
       this.input.keyboard.clearCaptures?.();
     }
   }
@@ -50,7 +50,6 @@ export class GameOverScene extends Scene {
     if (maybeMain?.scene?.isActive()) {
       maybeMain.scene.pause();
     }
-    // Clear any stale captures from previous scenes (space, arrows, WASD, etc.)
     this.input.keyboard?.clearCaptures?.();
 
     // --- Tasteful palette (harmonizes with GM3) ---
@@ -164,28 +163,15 @@ export class GameOverScene extends Scene {
       onUpdate: (tw) => scoreText.setText(String(Math.floor(tw.getValue()))),
     });
 
-    // --- Leaderboard preview / qualification ---
-    let qualifies = null;
-    let previewRank = null;
+    // --- Determine if we ask for initials or auto-save ---
+    const savedUsername = localStorage.getItem("game_username");
 
-    try {
-      const previewRes = await fetch(
-        `${this.game.apiBaseUrl}/preview?game=${encodeURIComponent(
-          this.gameKey
-        )}&score=${parseInt(this.end_points)}`
-      );
-      const result = await previewRes.json();
-      qualifies = !!result.qualifies;
-      previewRank = result.preview_rank ?? null;
-    } catch (err) {
-      console.error("Error checking leaderboard preview:", err);
-      this._line(centerX, centerY + 36, "Error connecting to leaderboard.", 0x8b0000);
-    }
-
-    if (qualifies === true) {
-      this.showQualificationUI(centerX, centerY + 52, previewRank);
-    } else if (qualifies === false) {
-      this._line(centerX, centerY + 52, "You did not make the leaderboard.", 0x8b0000);
+    if (savedUsername) {
+        // They are logged in! Auto-submit their full profile to the ledger silently
+        this._autoSubmitScore(centerX, centerY + 52, savedUsername);
+    } else {
+        // Not logged in (Guest). Show the UI to ask for 3 initials
+        this.showQualificationUI(centerX, centerY + 52);
     }
 
     // --- Buttons Row ---
@@ -283,8 +269,42 @@ export class GameOverScene extends Scene {
     return container;
   }
 
-  showQualificationUI(centerX, centerY, rank) {
-    const msg = `🎉 You made the leaderboard! Rank #${rank}`;
+  async _autoSubmitScore(centerX, centerY, savedUsername) {
+    this._line(centerX, centerY, "Saving session data...", 0x2e7d32);
+
+    const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+    const apiBase = isLocal ? "http://localhost:3000/api" : "http://accounting-game.cse.eng.auburn.edu/api"; 
+
+    try {
+      const res = await fetch(`${apiBase}/submit`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+            game: this.gameKey, 
+            username: savedUsername, // Save their FULL ID (e.g. sms0184) to the ledger
+            score: parseInt(this.end_points, 10),
+            time_played: this.timeSpentPlaying
+        }),
+      });
+
+      if (!res.ok) throw new Error("Network response was not ok");
+      
+      // Auto-transition to leaderboard after saving
+      this.time.delayedCall(1500, () => {
+        this.scene.start("Leaderboard", {
+          gameKey: this.gameKey,
+          highlightName: savedUsername.substring(0, 3).toUpperCase(), // Only highlight their 3 initials!
+        });
+      });
+
+    } catch (err) {
+      console.error("Auto-submit failed:", err);
+      this._line(centerX, centerY + 30, "Error saving to ledger.", 0x8b0000);
+    }
+  }
+
+  showQualificationUI(centerX, centerY) {
+    const msg = `🎉 Submit your score to the leaderboard!`;
     this.add.text(centerX, centerY - 40, msg, {
       fontSize: "30px",
       color: "#efe6d3",
@@ -342,14 +362,22 @@ export class GameOverScene extends Scene {
       const username = (el.value || "").toUpperCase() || "";
       const score = parseInt(this.end_points, 10);
       
-
       try {
         if (username.length < 3 || username.length > 3) throw new Error("Username must be exactly three characters");
 
-        const res = await fetch(`${this.game.apiBaseUrl}/submit`, {
+        // Environment Aware URL Routing
+        const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+        const apiBase = isLocal ? "http://localhost:3000/api" : "http://accounting-game.cse.eng.auburn.edu/api"; 
+
+        const res = await fetch(`${apiBase}/submit`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ game: this.gameKey, username, score }),
+          body: JSON.stringify({ 
+              game: this.gameKey, 
+              username: username, // Just their 3 initials since they are a guest
+              score: score,
+              time_played: this.timeSpentPlaying 
+          }),
         });
 
         if (!res.ok) throw new Error(`Submit failed (${res.status})`);

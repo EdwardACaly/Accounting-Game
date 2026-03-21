@@ -22,7 +22,9 @@ export default class GM3Level2 extends BaseGM3Scene {
 
   _finishToGameOver(reason = "completed") {
     if (this.timerEvent) this.timerEvent.remove(false);
-    this.scene.start("GameOverScene", { score: this.score, mode: "GM3-Level2", reason });
+    this.scene.start("GameOverScene", { score: this.score, mode: "GM3-Level2", reason,
+      timeSpentPlaying: Math.floor((this.time.now - this.startTime) / 1000),
+     });
   }
 
   buildLevel() {

@@ -30,3 +30,7 @@ venv/
 test-results/
 playwright-report/
 __pycache__/
+
+# SAML certificates
+src/backend/saml/certs/sp.key
+src/backend/saml/certs/sp.crt
