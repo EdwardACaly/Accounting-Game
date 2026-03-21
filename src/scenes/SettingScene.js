@@ -106,8 +106,6 @@ export class SettingsScene extends Scene {
         //const buttonRowY = panelY + panelHeight / 2 - 35;
         //const buttonStartX = panelX - ((modes.length - 1) * buttonSpacing) / 2;
 
-<<<<<<< HEAD
-=======
 
         // Login Screen Test Button
         createButton(
@@ -121,7 +119,6 @@ export class SettingsScene extends Scene {
             }
         );
 
->>>>>>> origin/main
         // Volume label
         this.add.text(labelX, panelHeight / 2 - 100, "Volume", {
             fontFamily: '"Jersey 10", sans-serif',
