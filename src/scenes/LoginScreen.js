@@ -41,7 +41,7 @@ export default class LoginScreen extends Phaser.Scene {
 
     backBtn.on("pointerdown", () => {
         if ((this.game.sfxVolume ?? this.sound.volume) > 0) this.sound.play("selection");
-        this.scene.start("SettingsScene"); // Sends you back to settings
+        this.scene.start("SettingsScene"); 
     });
     backBtn.on("pointerover", () => backBtn.setColor("#ffffff"));
     backBtn.on("pointerout", () => backBtn.setColor("#dcc89f"));
@@ -197,7 +197,7 @@ export default class LoginScreen extends Phaser.Scene {
       : "http://accounting-game.cse.eng.auburn.edu/api/"; 
 
         
-        const backendURL = `${apiBase}/saml/login`;
+        const backendURL = `${apiBase}saml/login`;
       
       const response = await fetch(backendURL, {
         method: "POST",
