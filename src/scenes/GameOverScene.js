@@ -273,7 +273,7 @@ export class GameOverScene extends Scene {
     this._line(centerX, centerY, "Saving session data...", 0x2e7d32);
 
     const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
-    const apiBase = isLocal ? "http://localhost:3000/api" : "http://accounting-game.cse.eng.auburn.edu/api"; 
+    const apiBase = isLocal ? "http://localhost:8000/api" : "http://accounting-game.cse.eng.auburn.edu/api"; 
 
     try {
       const res = await fetch(`${apiBase}/submit`, {
@@ -367,7 +367,7 @@ export class GameOverScene extends Scene {
 
         // Environment Aware URL Routing
         const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
-        const apiBase = isLocal ? "http://localhost:3000/api" : "http://accounting-game.cse.eng.auburn.edu/api"; 
+        const apiBase = isLocal ? "http://localhost:8000/api" : "http://accounting-game.cse.eng.auburn.edu/api"; 
 
         const res = await fetch(`${apiBase}/submit`, {
           method: "POST",

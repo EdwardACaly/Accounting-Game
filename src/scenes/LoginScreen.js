@@ -193,7 +193,7 @@ export default class LoginScreen extends Phaser.Scene {
         const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
     
         const apiBase = isLocal 
-      ? "http://localhost:3000/api" 
+      ? "http://localhost:8000/api" 
       : "http://accounting-game.cse.eng.auburn.edu/api/"; 
 
         

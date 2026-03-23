@@ -232,22 +232,102 @@ def preview_rank(game: str, score: int, n: int = TOP_N):
     if game not in ALLOWED_GAMES:
         raise
 
-@app.get("/saml/metadata")
-async def saml_metadata():
-    # Returns the XML metadata for Auburn's IT team
-    ...
+# SAML ---------------------------------------------------------------------------------------------------------------
 
-@app.post("/saml/login")
+#@app.get("/saml/metadata")
+#async def saml_metadata():
+#    # Returns the XML metadata for Auburn's IT team
+#    ...
+#
+#@app.post("/saml/login")
+#async def fake_login(payload: dict = Body(...)):
+#    # Just take whatever the game sent and say "OK!"
+#    username = payload.get("username", "guest").lower()
+#    return {
+#        "status": "success",
+#        "username": username,
+#        "message": "Fake login successful"
+#    }
+#
+#@app.post("/saml/acs")
+#async def saml_acs(request: Request):
+#    # This catches the student after they log in and saves their info
+#    ...
+
+SAML_PATH = os.path.join(os.path.dirname(__file__), 'saml')
+
+def prepare_fastapi_request(request: Request, body: dict = {}):
+    return {
+        'https': 'on' if request.url.scheme == 'https' else 'off',
+        'http_host': request.headers.get('host', request.url.hostname),
+        'script_name': request.url.path,
+        'get_data': dict(request.query_params),
+        'post_data': body
+    }
+
+# returns SP metadata XML, which IdP admins can use to configure the connection. No auth required since it's public info.
+@app.get('/saml/metadata', tags=["SAML"])
+async def saml_metadata(request: Request):
+    req = prepare_fastapi_request(request)
+    auth = OneLogin_Saml2_Auth(req, custom_base_path=SAML_PATH)
+    settings = auth.get_settings()
+    metadata = settings.get_sp_metadata()
+    errors = settings.validate_metadata(metadata)
+    if errors:
+        return Response(content=f"Metadata error: {', '.join(errors)}", status_code=500)
+    return Response(content=metadata, media_type='text/xml')
+
+# redirects to auburn login page
+@app.get('/saml/login', tags=["SAML"])
+async def saml_login(request: Request):
+    req = prepare_fastapi_request(request)
+    auth = OneLogin_Saml2_Auth(req, custom_base_path=SAML_PATH)
+    return RedirectResponse(auth.login())
+
+# IdP posts SAML response here after login, we then validate it and extract user info
+@app.post('/saml/acs', tags=["SAML"])
+async def saml_acs(request: Request):
+    form = await request.form()
+    req = prepare_fastapi_request(request, dict(form))
+    auth = OneLogin_Saml2_Auth(req, custom_base_path=SAML_PATH)
+    auth.process_response()
+    errors = auth.get_errors()
+    if errors:
+        return Response(
+            content=f"SAML error: {', '.join(errors)} — {auth.get_last_error_reason()}",
+            status_code=400
+        )
+    if not auth.is_authenticated():
+        return Response(content="Not authenticated", status_code=403)
+    # grab student info
+    nameid = auth.get_nameid()
+    attrs = auth.get_attributes()
+    return RedirectResponse('/', status_code=302)
+
+# handles log out requests/responses
+@app.get('/saml/sls', tags=["SAML"])
+async def saml_sls(request: Request):
+    req = prepare_fastapi_request(request)
+    auth = OneLogin_Saml2_Auth(req, custom_base_path=SAML_PATH)
+    url = auth.process_slo()
+    errors = auth.get_errors()
+    if errors:
+        return Response(content=f"SLO error: {', '.join(errors)}", status_code=400)
+    return RedirectResponse(url or '/')
+
+# initiates logout
+@app.get('/saml/logout', tags=["SAML"])
+async def saml_logout(request: Request):
+    req = prepare_fastapi_request(request)
+    auth = OneLogin_Saml2_Auth(req, custom_base_path=SAML_PATH)
+    return RedirectResponse(auth.logout())
+
+# for testing without Auburn SSO — works locally and on the server
+@app.post("/saml/fake-login", tags=["SAML"])
 async def fake_login(payload: dict = Body(...)):
-    # Just take whatever the game sent and say "OK!"
     username = payload.get("username", "guest").lower()
     return {
         "status": "success",
         "username": username,
         "message": "Fake login successful"
     }
-
-@app.post("/saml/acs")
-async def saml_acs(request: Request):
-    # This catches the student after they log in and saves their info
-    ...
