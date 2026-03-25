@@ -17,7 +17,7 @@ FROM public.player_profiles p
 JOIN public.game_analytics g ON p.username = g.username
 WHERE p.section = %s
 GROUP BY p.first_name, p.last_name, p.username, g.game
-ORDER BY p.last_name, g.game;
+ORDER BY p.last_name ASC, g.game ASC;
 """
 
 # 2. Section Averages per Game
