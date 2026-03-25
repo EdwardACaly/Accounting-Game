@@ -23,8 +23,8 @@ import GM3Level3 from "./scenes/GM3Level3";
 import GM3PauseScene from "./scenes/GM3PauseScene";
 
 // login and dashboards for testing
-import { ProfessorDash } from "./scenes/ProfessorDash";
-import { AdminDash } from "./scenes/AdminDash";
+import  ProfessorDash  from "./scenes/ProfessorDash.js";
+import  AdminDash  from "./scenes/AdminDash.js";
 
 import LoginScreen from "./scenes/LoginScreen";
 
