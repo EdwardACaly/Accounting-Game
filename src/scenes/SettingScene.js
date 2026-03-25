@@ -108,8 +108,8 @@ export class SettingsScene extends Scene {
         const spacing = 160;
 
         createButton(panelX - spacing, footerY, "Student", () => this.scene.start("MainMenuScene"));
-        createButton(panelX, footerY, "Professor", () => this.scene.start("ProfessorDashScene"));
-        createButton(panelX + spacing, footerY, "Admin", () => this.scene.start("AdminDashScene"));
+        createButton(panelX, footerY, "Professor", () => this.scene.start("ProfessorDash"));
+        createButton(panelX + spacing, footerY, "Admin", () => this.scene.start("AdminDash"));
 
         // Keyboard Shortcuts
         this._escKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);

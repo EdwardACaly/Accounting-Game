@@ -21,6 +21,8 @@ import GM3Level1 from "./scenes/GM3Level1";
 import GM3Level2 from "./scenes/GM3Level2";
 import GM3Level3 from "./scenes/GM3Level3";
 import GM3PauseScene from "./scenes/GM3PauseScene";
+import ProfessorDash from "./scenes/ProfessorDash";
+import AdminDash from "./scenes/AdminDash";
 
 import LoginScreen from "./scenes/LoginScreen";
 
@@ -73,6 +75,8 @@ const config = {
     Leaderboard,
     //login screen for testing 
     LoginScreen,
+    ProfessorDash,
+    AdminDash,
   ],
 };
 
