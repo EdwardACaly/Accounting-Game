@@ -39,9 +39,9 @@ export class Leaderboard extends Scene {
         const modes = [
             { label: "Dr. vs. Cr.", key: "game1" },
             { label: "Elements", key: "game2" },
-            { label: "Equation 1", key: "game3-1" },
-            { label: "Equation 2", key: "game3-2" },
-            { label: "Equation 3", key: "game3-3" },
+            { label: "Balance", key: "game3-1" },
+            { label: "Effects", key: "game3-2" },
+            { label: "Errors", key: "game3-3" },
         ];
 
         const createButton = (x, y, labelText, onClick) => {
