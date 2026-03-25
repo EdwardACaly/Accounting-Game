@@ -14,6 +14,8 @@ import re
 from onelogin.saml2.auth import OneLogin_Saml2_Auth
 from onelogin.saml2.utils import OneLogin_Saml2_Utils
 
+from stat_queries import *
+
 load_dotenv()
 
 DATABASE_URL = os.getenv("DATABASE_URL")
@@ -58,18 +60,13 @@ class LeaderboardRow(BaseModel):
 # --- NEW SQL QUERIES FOR ANALYTICS TABLES ---
 
 SQL_GET_LEADERBOARD = """
-WITH BestScores AS (
-    SELECT username, MAX(score) as max_score
-    FROM public.game_analytics
-    WHERE game = %s
-    GROUP BY username
-)
-SELECT
-    RANK() OVER (ORDER BY max_score DESC) AS rank,
-    max_score AS score,
+SELECT 
+    RANK() OVER (ORDER BY score DESC, created_at ASC) AS rank,
+    score, 
     UPPER(SUBSTRING(username, 1, 3)) AS username
-FROM BestScores
-ORDER BY rank
+FROM public.game_analytics
+WHERE game = %s
+ORDER BY score DESC, created_at ASC
 LIMIT %s;
 """
 
@@ -89,13 +86,9 @@ RETURNING id;
 """
 
 SQL_GET_CURRENT_RANK = """
-WITH BestScores AS (
-    SELECT username, MAX(score) as max_score
-    FROM public.game_analytics
-    WHERE game = %s
-    GROUP BY username
-)
-SELECT COUNT(*) + 1 FROM BestScores WHERE max_score > %s;
+SELECT COUNT(*) + 1 
+FROM public.game_analytics 
+WHERE game = %s AND score > %s;
 """
 
 SQL_PREVIEW = """
