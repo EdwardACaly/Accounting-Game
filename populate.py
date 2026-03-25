@@ -1,7 +1,6 @@
-# easy way to load some folks onto the server for testing 
-
 import psycopg2
 import random
+import string
 
 # Database connection
 DB_CONFIG = {
@@ -15,26 +14,40 @@ DB_CONFIG = {
 STUDENTS = [
     ("John", "Smith"), ("Jane", "Doe"), ("Aubie", "Tiger"), 
     ("Otto", "Priminger"), ("Bruce", "Wayne"), ("Clark", "Kent"), 
-    ("Barbie", "Doll"), ("The", "Chosen"), ("Shayne", "Topp"), ("Bubba", "Gump")
+    ("Barbie", "Doll"), ("The", "Chosen"), ("Shayne", "Topp"), 
+    ("Bubba", "Gump"), ("Princess", "Buttercup"), ("Indiana", "Jones")
 ]
 
 GAMES = ["game1", "game2", "game3-1", "game3-2", "game3-3"]
 SECTIONS = ["001", "002", "003"]
+
+def generate_username(first, last):
+    """
+    Format: 1st initial + random letter + 1st initial of last name + 0 + 3 random numbers
+    Example: John Smith -> js0123 (with a random letter in the 2nd slot)
+    """
+    f_init = first[0].lower()
+    rand_char = random.choice(string.ascii_lowercase)
+    l_init = last[0].lower()
+    rand_nums = random.randint(100, 999)
+    return f"{f_init}{rand_char}{l_init}0{rand_nums}"
 
 def populate():
     conn = psycopg2.connect(**DB_CONFIG)
     cur = conn.cursor()
     
     try:
-        # 1. Clear existing data to remove "Fake Users"
+        # 1. Clear existing data
         cur.execute("TRUNCATE TABLE public.game_analytics CASCADE;")
         cur.execute("TRUNCATE TABLE public.player_profiles CASCADE;")
         
-        print("Cleaning out old data...")
+        print("Cleaning out old data and populating new roster...")
 
         for i, (first, last) in enumerate(STUDENTS):
-            username = f"{(first[0] + last).lower()}{random.randint(10, 99)}"
-            # Distribute students across sections 001, 002, 003
+            # Apply your new username logic
+            username = generate_username(first, last)
+            
+            # Distribute students across sections
             section = SECTIONS[i % 3] 
             
             # Insert Profile
@@ -43,7 +56,7 @@ def populate():
                 (username, first, last, section)
             )
 
-            # 2. Generate Scores (Constraints: 3-5 attempts per game per student)
+            # 2. Generate Scores
             for game in GAMES:
                 attempts = random.randint(3, 5)
                 for _ in range(attempts):
@@ -56,6 +69,8 @@ def populate():
         
         conn.commit()
         print(f"Successfully added {len(STUDENTS)} students across {len(SECTIONS)} sections.")
+        print(f"Sample Username Created: {generate_username('John', 'Smith')}")
+        
     except Exception as e:
         print(f"Error: {e}")
         conn.rollback()

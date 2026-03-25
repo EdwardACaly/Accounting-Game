@@ -14,6 +14,13 @@ export default class ProfessorDash extends Scene {
             fontSize: "42px", fontFamily: '"Jersey 10", sans-serif', color: "#dcc89f"
         }).setOrigin(0.5);
 
+        
+        this.sectionTitle = this.add.text(this.scale.width / 2, 90, "", {
+            fontSize: "32px",
+            fontFamily: '"Jersey 10", sans-serif',
+            color: "#ffffff"
+        }).setOrigin(0.5);
+
         // Create Section Selection Buttons
         const sections = ["001", "002", "003"];
         sections.forEach((id, index) => {
@@ -31,6 +38,7 @@ export default class ProfessorDash extends Scene {
         // --- 1. UI CLEANUP ---
         // Hide Section Buttons
         this.sectionButtons.forEach(btn => btn.setVisible(false));
+        this.sectionTitle.setText(`Viewing Section: ${sectionId}`);
 
         // Inside loadSectionData
         if (this.statsContainer) {
