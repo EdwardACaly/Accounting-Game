@@ -320,7 +320,8 @@ def get_section_report(section_id: str):
     conn = pool.getconn()
     try:
         with conn.cursor() as cur:
-            # 1. Individual Performance (Avg, Top, Bottom per game)
+            # 1. Individual Performance 
+            # Ensure SQL_PROF_STUDENT_STATS selects: first_name, last_name, username, game, avg, max, min
             cur.execute(SQL_PROF_STUDENT_STATS, (section_id,))
             student_stats = cur.fetchall()
 
@@ -328,7 +329,7 @@ def get_section_report(section_id: str):
             cur.execute(SQL_PROF_SECTION_AVERAGES, (section_id,))
             averages = cur.fetchall()
 
-            # 3. Total Time Spent in Game as a Whole
+            # 3. Total Time Spent
             cur.execute(SQL_PROF_STUDENT_TIME, (section_id,))
             time_spent = cur.fetchall()
 
@@ -336,19 +337,21 @@ def get_section_report(section_id: str):
                 "section": section_id,
                 "student_breakdown": [
                     {
-                        "name": f"{r[0]} {r[1]}", 
+                        "name": f"{r[0]} {r[1]}", # Combines real First and Last name
                         "user": r[2], 
-                        "game": r[3], 
-                        "avg": float(r[4]), 
+                        "game": r[3],             # This ensures Phaser knows WHICH game the score is for
+                        "avg": float(r[4]) if r[4] is not None else 0.0, 
                         "top": r[5], 
                         "bottom": r[6]
                     } for r in student_stats
                 ],
                 "section_game_averages": [
-                    {"game": r[0], "avg_score": float(r[1])} for r in averages
+                    {"game": r[0], "avg_score": float(r[1]) if r[1] is not None else 0.0} 
+                    for r in averages
                 ],
                 "total_time_records": [
-                    {"name": f"{r[0]} {r[1]}", "user": r[2], "seconds": r[3]} for r in time_spent
+                    {"name": f"{r[0]} {r[1]}", "user": r[2], "seconds": r[3] or 0} 
+                    for r in time_spent
                 ]
             }
     finally:
@@ -421,6 +424,67 @@ def get_admin_csv():
                 iter([output.getvalue()]),
                 media_type="text/csv",
                 headers={"Content-Disposition": "attachment; filename=global_top_scores.csv"}
+            )
+    finally:
+        pool.putconn(conn)
+
+
+
+# --- ADMIN: ALL STUDENTS (No Section Filter) ---
+@app.get("/stats/admin/all-students")
+def get_all_students_admin():
+    conn = pool.getconn()
+    try:
+        with conn.cursor() as cur:
+            # We reuse the Prof query but pass None or a wildcard if your SQL supports it, 
+            # OR we use a dedicated "Global" version of that query:
+            cur.execute("""
+                SELECT p.first_name, p.last_name, p.username, g.game, AVG(g.score), MAX(g.score), MIN(g.score), p.section
+                FROM public.player_profiles p
+                JOIN public.game_analytics g ON p.username = g.username
+                GROUP BY p.first_name, p.last_name, p.username, g.game, p.section
+                ORDER BY p.section ASC, p.last_name ASC;
+            """)
+            rows = cur.fetchall()
+            return [
+                {
+                    "name": f"{r[0]} {r[1]}", 
+                    "game": r[3], 
+                    "avg": float(r[4]), 
+                    "top": r[5], 
+                    "bottom": r[6],
+                    "section": r[7]
+                } for r in rows
+            ]
+    finally:
+        pool.putconn(conn)
+
+
+@app.get("/api/stats/admin/all-students/csv")
+def get_all_students_csv():
+    conn = pool.getconn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT p.section, p.first_name, p.last_name, g.game, AVG(g.score), MAX(g.score)
+                FROM public.player_profiles p
+                JOIN public.game_analytics g ON p.username = g.username
+                GROUP BY p.section, p.first_name, p.last_name, g.game
+                ORDER BY p.section, p.last_name;
+            """)
+            rows = cur.fetchall()
+
+            output = io.StringIO()
+            writer = csv.writer(output)
+            writer.writerow(["Section", "First Name", "Last Name", "Game", "Avg Score", "High Score"])
+            for r in rows:
+                writer.writerow([r[0], r[1], r[2], r[3], round(float(r[4]), 2), r[5]])
+
+            output.seek(0)
+            return StreamingResponse(
+                iter([output.getvalue()]),
+                media_type="text/csv",
+                headers={"Content-Disposition": "attachment; filename=all_students_report.csv"}
             )
     finally:
         pool.putconn(conn)
