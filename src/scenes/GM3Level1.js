@@ -11,7 +11,7 @@ export default class GM3Level1 extends BaseGM3Scene {
     
     //We keep currentCorrect around just in case, but add variables to handle text input states
     this.currentCorrect = -1; 
-    this.currentInput = "";         // Stores the player's current typed numbers
+    this.currentInput = "";         
     this.acceptingInput = false;    // Acts as a gatekeeper so players can't type during countdowns or feedback
     this._uiNodes = [];
     
@@ -33,7 +33,7 @@ export default class GM3Level1 extends BaseGM3Scene {
   _finishToGameOver(reason = "completed") {
     if (this.timerEvent) this.timerEvent.remove(false);
     
-    // CORRECT WAY TO UNBIND: Include the function and the context
+    // unbind
     this.input.keyboard.off('keydown', this._handleKeydown, this); 
     
     this.scene.start("GameOverScene", { 
