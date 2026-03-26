@@ -179,10 +179,10 @@ export default class LoginScreen extends Phaser.Scene {
     // Package the payload. 
     // IMPORTANT: Make sure these keys match what your discovered backend expects!
     const payload = {
-      username: username,
-      first_name: first_name,
-      last_name: last_name,
-      section: section,
+      username: this.formData.username,      
+      first_name: this.formData.firstName,
+      last_name: this.formData.lastName,       
+      section: this.formData.sectionNumber,    
       timestamp: new Date().toISOString()
     };
 
