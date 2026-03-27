@@ -220,6 +220,7 @@ export class MainScene extends Scene {
         this.game.sfxVolume = parseFloat(localStorage.getItem("volume"));
         if (isNaN(this.game.sfxVolume)) this.game.sfxVolume = 1.0;
         this.ballCount = 0;
+	this.streak = 0; // STREAK COUNTER
         this.cameras.main.fadeIn(1000, 0, 0, 0);
 
         if (!this.normalBalance || !this.allSheet) {
@@ -413,6 +414,26 @@ export class MainScene extends Scene {
                     : ballPoints;
 
                 this.points += awardedPoints;
+		// update streak
+		this.streak += 1;
+		this.updateStreakUI();
+		// animation
+		if (this.streak < 7) {
+    		    this.tweens.killTweensOf(this.streakText);
+    		    this.streakText.setScale(1);
+
+    		    this.tweens.add({
+        		targets: this.streakText,
+        		scale: 1.3,
+        		duration: 100,
+       			yoyo: true,
+   		    });
+		}
+		if (this.streak === 7) {
+    		    this.tweens.killTweensOf(this.streakText);
+    		    this.streakText.setScale(1);
+    		    this.startStreakPulse();
+		}
 
                 this.scene.get("HudScene").update_points(this.points);
                 this.scene.get("HudScene").showPointsPopup(awardedPoints);
@@ -431,11 +452,51 @@ export class MainScene extends Scene {
                 ball.goToPit();
                 this.answer_stats.get(basket.type).incorrect += 1;
 
+		// streak broken
+		this.streak = 0;
+		this.updateStreakUI();
+		this.stopStreakPulse();
+
                 // Screen Shake
                 const cam = this.cameras.main;
                 cam.shake(200, 0.005);                
             }
         }
+    }
+
+    // streak visual
+    updateStreakUI() {
+        if (!this.streakText) return;
+	
+	//appears after 3 consecutive correct sorts
+        if (this.streak >= 3) {
+            this.streakText.setVisible(true);
+            this.streakText.setText(`Streak: ${this.streak}`);
+        } 
+	else {
+            this.streakText.setVisible(false);
+        }
+    }
+
+    startStreakPulse() {
+    	if (this.streakPulseTween) return; // already pulsing
+
+    	    this.streakPulseTween = this.tweens.add({
+            targets: this.streakText,
+            scale: 1.1,
+            duration: 400,
+            yoyo: true,
+            repeat: -1, // infinite
+            ease: "Sine.easeInOut",
+        });
+    }
+
+    stopStreakPulse() {
+        if (this.streakPulseTween) {
+            this.streakPulseTween.stop();
+            this.streakPulseTween = null;
+        }
+        this.streakText.setScale(1);
     }
 
     getRandomNBElements(total) {
@@ -541,6 +602,21 @@ export class MainScene extends Scene {
             this.game.musicManager.play(this, "game_bgm");
         }
         this.add.image(0, 0, "background").setOrigin(0, 0);
+
+	// NEW: Streak indicator
+	this.streakText = this.add.text(
+    	this.scale.width - 20, 45, "Streak: 0",
+    	{
+            fontSize: "40px",
+            color: "#dcc89f",
+            fontFamily: '"Jersey 10", sans-serif',
+    	}
+	)
+	.setOrigin(1, 0) // top-right of screen
+        .setOrigin(1, 0)
+        .setStroke("#7f1a02", 3)
+        .setDepth(999);
+	this.streakText.setVisible(false);
 
         // conveyor belts + baskets
         let belts_chosen = this.config.belt_labels;
@@ -806,4 +882,5 @@ export class MainScene extends Scene {
         this.mouse_down_last_frame = this.input.activePointer.leftButtonDown();
     }
 }
+
 
