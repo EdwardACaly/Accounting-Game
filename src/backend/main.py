@@ -283,6 +283,14 @@ async def saml_acs(request: Request):
     # grab student info
     nameid = auth.get_nameid()
     attrs = auth.get_attributes()
+
+    # parse the memberOf attribute for section info + student/professor
+    mo = attrs.get('memberOf', []).split(',')
+    members_of = {'CN': [], 'OU': [], 'DC': []}
+    for part in mo:
+        part = part.split('=')
+        members_of[part[0]].append(part[1])
+
     return RedirectResponse('/', status_code=302)
 
 # handles log out requests/responses
