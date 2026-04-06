@@ -9,16 +9,11 @@ export class GameOverScene extends Scene {
   }
 
   init(data) {
-    // Accept both shapes from callers:
-    // - GM3Level1/2/3 send: { score, mode: "GM3-Level1"/"GM3-Level2"/"GM3-Level3" }
-    // - Others might send: { points, gameKey }
     this.end_points = (data && (data.points ?? data.score)) || 0;
     this.gameKey = (data && (data.gameKey ?? data.mode)) || "MainScene";
-    // Catch the time played from the main scene (default to 0 if missing)
     this.timeSpentPlaying = (data && data.timeSpentPlaying) || 0; 
   }
 
-  // Normalize whatever we received into an actual scene key to restart
   _resolveRestartScene() {
     const key = String(this.gameKey || "");
     if (key === "GM3Level1" || key === "GM3-Level1") return "GM3Level1";
@@ -27,13 +22,13 @@ export class GameOverScene extends Scene {
     return "MainScene";
   }
 
-  // --- Helpers to globally suspend / resume Phaser keyboard while typing ---
   _suspendKeys() {
     if (this.input?.keyboard) {
       this.input.keyboard.enabled = false;
       this.input.keyboard.clearCaptures?.();
     }
   }
+
   _resumeKeys() {
     if (this.input?.keyboard) {
       this.input.keyboard.enabled = true;
@@ -45,14 +40,12 @@ export class GameOverScene extends Scene {
     const centerX = width / 2;
     const centerY = height / 2;
 
-    // Defensive: if this scene was launched on top, make sure gameplay isn’t still reading keys
     const maybeMain = this.scene.get("MainScene");
     if (maybeMain?.scene?.isActive()) {
       maybeMain.scene.pause();
     }
     this.input.keyboard?.clearCaptures?.();
 
-    // --- Tasteful palette (harmonizes with GM3) ---
     const COLORS = {
       BG_DIM: 0x0b0907,
       PANEL_BEIGE: 0xeadbb7,
@@ -69,7 +62,6 @@ export class GameOverScene extends Scene {
       BTN_TEXT: "#ffffff",
     };
 
-    // --- Choose background based on restart scene ---
     const restartScene = this._resolveRestartScene();
     const preferGM3 = restartScene.startsWith("GM3Level");
     const desiredBgKey = preferGM3 ? "gm3_shared_bg" : "gameover_bg";
@@ -83,12 +75,10 @@ export class GameOverScene extends Scene {
       }
     }
 
-    // Background + subtle dim
     this.add.image(0, 0, bgKey).setOrigin(0, 0).setDepth(0)
       .setDisplaySize(width, height);
     this.add.rectangle(centerX, centerY, width, height, COLORS.BG_DIM, 0.46).setDepth(1);
 
-    // --- Minimal sparkle at the top ---
     this._ensureParticleTextures();
     this.add.particles(0, 0, "spark8", {
       x: { min: 0, max: width },
@@ -103,28 +93,23 @@ export class GameOverScene extends Scene {
       blendMode: "ADD"
     }).setDepth(1.2);
 
-    // --- Smaller, cleaner parchment panel ---
     const panelW = Math.min(660, Math.floor(width * 0.85));
     const panelH = Math.min(600, Math.floor(height * 0.95));
 
-    // Soft drop shadow
     const shadow = this.add.graphics().setDepth(2);
     shadow.fillStyle(0x000000, 0.20);
     shadow.fillRoundedRect(centerX - panelW / 2 + 8, centerY - panelH / 2 + 10, panelW, panelH, 22);
 
-    // Panel base
     const panel = this.add.graphics().setDepth(2.2);
     panel.lineStyle(5, COLORS.STROKE_BROWN, 1);
     panel.fillStyle(COLORS.PANEL_BEIGE, 1);
     panel.strokeRoundedRect(centerX - panelW / 2, centerY - panelH / 2, panelW, panelH, 22);
     panel.fillRoundedRect(centerX - panelW / 2, centerY - panelH / 2, panelW, panelH, 22);
 
-    // Thin inner accent line
     const inner = this.add.graphics().setDepth(2.3);
     inner.lineStyle(2, COLORS.ACCENT, 0.65);
     inner.strokeRoundedRect(centerX - panelW / 2 + 8, centerY - panelH / 2 + 8, panelW - 16, panelH - 16, 18);
 
-    // Title
     this.add.text(centerX, centerY - panelH / 2 + 40, "GAME OVER", {
       fontSize: "56px",
       color: COLORS.TEXT_LIGHT,
@@ -132,7 +117,6 @@ export class GameOverScene extends Scene {
       align: "center",
     }).setOrigin(0.5).setDepth(3).setStroke("#7f1a02", 4);
 
-    // Divider
     const deco = this.add.graphics().setDepth(3);
     deco.lineStyle(3, COLORS.STROKE_BROWN, 0.7);
     deco.beginPath();
@@ -140,7 +124,6 @@ export class GameOverScene extends Scene {
     deco.lineTo(centerX + panelW * 0.34, centerY - panelH / 2 + 76);
     deco.strokePath();
 
-    // --- SCORE ---
     this.add.text(centerX, centerY - 150, "YOUR SCORE", {
       fontSize: "28px",
       color: COLORS.TEXT_DARK,
@@ -163,21 +146,15 @@ export class GameOverScene extends Scene {
       onUpdate: (tw) => scoreText.setText(String(Math.floor(tw.getValue()))),
     });
 
-    // --- Determine if we ask for initials or auto-save ---
     const savedUsername = localStorage.getItem("game_username");
 
     if (savedUsername) {
-        // They are logged in! Auto-submit their full profile to the ledger silently
         this._autoSubmitScore(centerX, centerY + 52, savedUsername);
     } else {
-        // Not logged in (Guest). Show the UI to ask for 3 initials
         this.showQualificationUI(centerX, centerY + 52);
     }
 
-    // --- Buttons Row ---
     this.createMenuButtons(centerX, centerY + panelH / 2 - 40);
-
-    // Safety: if this scene shuts down, always resume keys
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this._resumeKeys());
   }
 
@@ -273,7 +250,8 @@ export class GameOverScene extends Scene {
     this._line(centerX, centerY, "Saving session data...", 0x2e7d32);
 
     const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
-    const apiBase = isLocal ? "http://localhost:8000/api" : "http://accounting-game.cse.eng.auburn.edu/api"; 
+    // --- FIXED: Removed /api to match main.py route ---
+    const apiBase = isLocal ? "http://localhost:8000" : "http://accounting-game.cse.eng.auburn.edu/api"; 
 
     try {
       const res = await fetch(`${apiBase}/submit`, {
@@ -281,7 +259,7 @@ export class GameOverScene extends Scene {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
             game: this.gameKey, 
-            username: savedUsername, // Save their FULL ID (e.g. sms0184) to the ledger
+            username: savedUsername, 
             score: parseInt(this.end_points, 10),
             time_played: this.timeSpentPlaying
         }),
@@ -289,11 +267,10 @@ export class GameOverScene extends Scene {
 
       if (!res.ok) throw new Error("Network response was not ok");
       
-      // Auto-transition to leaderboard after saving
       this.time.delayedCall(1500, () => {
         this.scene.start("Leaderboard", {
           gameKey: this.gameKey,
-          highlightName: savedUsername.substring(0, 3).toUpperCase(), // Only highlight their 3 initials!
+          highlightName: savedUsername.substring(0, 3).toUpperCase(), 
         });
       });
 
@@ -319,7 +296,6 @@ export class GameOverScene extends Scene {
       fontFamily: '"Jersey 10", sans-serif',
     }).setOrigin(0.5).setDepth(6);
 
-    // --- DOM input on-theme
     const input = this.add.dom(centerX, centerY + 80, "input", {
       type: "text",
       fontSize: "26px",
@@ -336,18 +312,13 @@ export class GameOverScene extends Scene {
     input.node.style.padding = "8px 10px";
     input.node.style.boxShadow = "0 2px 0 #7f1a02";
 
-    // 🔒 Keyboard focus handling: let WASD/space/etc. type into the input
     const el = input.node;
     const focusInput = () => { el.focus(); el.select?.(); };
-    // When focused: disable Phaser keyboard entirely
     el.addEventListener("focus", () => this._suspendKeys());
-    // When leaving the field: re-enable Phaser keyboard
     el.addEventListener("blur", () => this._resumeKeys());
-    // Never let keystrokes bubble to Phaser while typing
     ["keydown", "keyup", "keypress", "input"].forEach(evt =>
       el.addEventListener(evt, e => e.stopPropagation(), { capture: true })
     );
-    // Allow Enter to submit while focused (works even with Phaser keys suspended)
     el.addEventListener("keydown", (e) => {
       if (e.key === "Enter") {
         e.preventDefault();
@@ -355,7 +326,6 @@ export class GameOverScene extends Scene {
       }
     });
 
-    // Focus ASAP so players can type immediately
     this.time.delayedCall(0, focusInput);
 
     const handleSubmit = async () => {
@@ -363,18 +333,18 @@ export class GameOverScene extends Scene {
       const score = parseInt(this.end_points, 10);
       
       try {
-        if (username.length < 3 || username.length > 3) throw new Error("Username must be exactly three characters");
+        if (username.length !== 3) throw new Error("Username must be exactly three characters");
 
-        // Environment Aware URL Routing
         const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
-        const apiBase = isLocal ? "http://localhost:8000/api" : "http://accounting-game.cse.eng.auburn.edu/api"; 
+        // --- FIXED: Removed /api to match main.py route ---
+        const apiBase = isLocal ? "http://localhost:8000" : "http://accounting-game.cse.eng.auburn.edu/api"; 
 
         const res = await fetch(`${apiBase}/submit`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ 
               game: this.gameKey, 
-              username: username, // Just their 3 initials since they are a guest
+              username: username, 
               score: score,
               time_played: this.timeSpentPlaying 
           }),
@@ -391,7 +361,6 @@ export class GameOverScene extends Scene {
           fontFamily: '"Jersey 10", sans-serif',
         }).setOrigin(0.5).setDepth(7).setStroke("#7f1a02", 3).setTint(0x2e7d32);
 
-        // We’re navigating away; re-enable keys for the next scene
         this._resumeKeys();
 
         this.time.delayedCall(900, () => {
@@ -414,7 +383,6 @@ export class GameOverScene extends Scene {
           .setStroke("#7f1a02", 3)
           .setTint(0x8b0000);
 
-        // Fade out after 2 seconds, lasting 0.8 seconds
         this.tweens.add({
           targets: errorText,
           alpha: { from: 1, to: 0 },
@@ -427,9 +395,7 @@ export class GameOverScene extends Scene {
       }
     };
 
-    // Submit button
     this._makeBrownButton(centerX + 10, centerY + 160, "Submit", handleSubmit);
-    // If you also want Enter to work when the input is NOT focused:
     this.input.keyboard.once?.("keydown-ENTER", () => {
       if (document.activeElement !== el) handleSubmit();
     });
@@ -439,7 +405,6 @@ export class GameOverScene extends Scene {
     const gap = 450;
 
     this._makeBrownButton(centerX - gap / 2, baseY, "Play Again", () => {
-      // Re-enable keys for the next scene
       this._resumeKeys();
       this.game.musicManager?.stop();
       this.sound.stopAll();

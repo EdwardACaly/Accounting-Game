@@ -166,9 +166,10 @@ export default class LoginScreen extends Phaser.Scene {
   }
 
   // --- THE BACKEND CONNECTION ---
+  // --- THE BACKEND CONNECTION ---
   async _sendToServer() {
-    // Check if everything is filled out
     const { username, firstName, lastName, sectionNumber } = this.formData;
+    
     if (!username || !firstName || !lastName || !sectionNumber) {
       this.statusText.setText("Error: All fields must be filled!").setColor("#ff0000");
       return;
@@ -176,54 +177,52 @@ export default class LoginScreen extends Phaser.Scene {
 
     this.statusText.setText("Connecting to server...").setColor("#ffff00");
 
-    // Package the payload. 
-    // IMPORTANT: Make sure these keys match what your discovered backend expects!
     const payload = {
-      username: this.formData.username,      
-      first_name: this.formData.firstName,
-      last_name: this.formData.lastName,       
-      section: this.formData.sectionNumber,    
+      username: username,      
+      first_name: firstName,
+      last_name: lastName,       
+      section: sectionNumber,    
       timestamp: new Date().toISOString()
     };
 
-    console.log("Preparing to send payload:", payload);
-
     try {
-
         const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
-    
-        const apiBase = isLocal 
-      ? "http://localhost:8000/api" 
-      : "http://accounting-game.cse.eng.auburn.edu/api/"; 
-
-        
+        const apiBase = isLocal ? "http://localhost:8000" : "http://accounting-game.cse.eng.auburn.edu/api"; 
         const backendURL = `${apiBase}/saml/fake-login`;
       
-      const response = await fetch(backendURL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(payload)
-      });
+        const response = await fetch(backendURL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        });
 
-      if (response.ok) {
-        const responseData = await response.json();
-        console.log("Server replied:", responseData);
-        this.statusText.setText("Success! Data sent to server.").setColor("#00ff00");
+        if (response.ok) {
+            const responseData = await response.json();
+            
+            if (responseData.status === 'success') {
+                // Visual feedback only - no automatic scene start
+                this.statusText.setText("Success! Profile Updated.").setColor("#00ff00");
+                this.submitText.setText("DATA SAVED"); // Feedback on the button itself
 
-        // --- NEW: Save their info to the browser's memory ---
-        localStorage.setItem("game_username", this.formData.username);
-        localStorage.setItem("game_firstName", this.formData.firstName);
-        localStorage.setItem("game_lastName", this.formData.lastName);
-        localStorage.setItem("game_section", this.formData.sectionNumber);
+                // Save to localStorage
+                localStorage.setItem("game_username", username);
+                localStorage.setItem("game_firstName", firstName);
+                localStorage.setItem("game_lastName", lastName);
+                localStorage.setItem("game_section", sectionNumber);
 
-      } else {
-        this.statusText.setText(`Server Error: ${response.status}`).setColor("#ff0000");
-      }
+                // Save to global game state for Leaderboard.js initials/section filtering
+                this.game.userSection = sectionNumber; 
+                this.game.userUsername = username; 
+
+            } else {
+                this.statusText.setText(`Login Failed: ${responseData.message}`).setColor("#ff0000");
+            }
+        } else {
+            this.statusText.setText(`Server Error: ${response.status}`).setColor("#ff0000");
+        }
     } catch (error) {
-      console.error("Network error:", error);
-      this.statusText.setText("Network error! Is your backend running?").setColor("#ff0000");
+        console.error("Network error:", error);
+        this.statusText.setText("Network error! Is your backend running?").setColor("#ff0000");
     }
   }
 }
