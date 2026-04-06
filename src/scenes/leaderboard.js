@@ -214,7 +214,15 @@ export class Leaderboard extends Scene {
             // Get user section from global game state (set during login)
             const userSection = this.game.userSection; 
 
-            let url = `http://127.0.0.1:8000/leaderboard/${mode}`;
+            //let url = `http://127.0.0.1:8000/leaderboard/${mode}`;
+
+            // --- Environment Aware Routing ---
+            const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+            const apiBase = isLocal 
+                ? "http://localhost:8000" 
+                : "http://accounting-game.cse.eng.auburn.edu/api";
+
+            let url = `${apiBase}/leaderboard/${mode}`;
         
             if (this.scoreScope === "section" && userSection) {
                 url += `?section=${userSection}`;
