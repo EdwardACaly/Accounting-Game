@@ -51,11 +51,14 @@ app = FastAPI(lifespan=lifespan, title="Arcade Leaderboard & Analytics API", ver
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],        # <-- allow all domains
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173", "*"], # let us see login info on local and server
+    
     allow_credentials=True,
     allow_methods=["*"],        # <-- allow all methods (GET, POST, etc.)
     allow_headers=["*"],        # <-- allow all headers
 )
+
+
 
 class LeaderboardRow(BaseModel):
     rank: int
@@ -128,6 +131,8 @@ FROM stats;
 def get_leaderboard(
     game: str = Path(..., description="Game identifier (e.g., 'game1')"),
     limit: int = Query(TOP_N, ge=1, le=100, description="Number of rows to return (1–100)."),
+    section: Optional[str] = Query(None, description="Optional section filter (e.g., '001')") # <-- NEW
+    
 ):
     game = GAME_ALIASES.get(game.lower(), game.lower())
 
@@ -140,9 +145,29 @@ def get_leaderboard(
     conn = pool.getconn()
     try:
         with conn.cursor() as cur:
-            cur.execute(SQL_GET_LEADERBOARD, (game, limit))
+            # --- NEW LOGIC START ---
+            # --- FIX: Change g.game_id to g.game ---
+            if section:
+                sql = """
+                    SELECT 
+                    RANK() OVER (ORDER BY score DESC) as rank,
+                        score,
+                        p.username
+                    FROM game_analytics g
+                    JOIN player_profiles p ON g.username = p.username
+                    WHERE g.game = %s AND p.section = %s
+                    ORDER BY score DESC
+                    LIMIT %s
+                """
+                
+                cur.execute(sql, (game, section, limit))
+            else:
+                # Original Global Query (uses your predefined SQL_GET_LEADERBOARD)
+                cur.execute(SQL_GET_LEADERBOARD, (game, limit))
+            # --- NEW LOGIC END ---
+
             rows = cur.fetchall()
-        # rows: List[tuple(rank, score, username)]
+            
         return [{"rank": r, "score": s, "username": u.strip() if isinstance(u, str) else u} for (r, s, u) in rows]
     finally:
         pool.putconn(conn)
@@ -284,12 +309,51 @@ async def saml_acs(request: Request):
     nameid = auth.get_nameid()
     attrs = auth.get_attributes()
 
+    # ===PARSING===
     # parse the memberOf attribute for section info + student/professor
-    mo = attrs.get('memberOf', []).split(',')
-    members_of = {'CN': [], 'OU': [], 'DC': []}
-    for part in mo:
-        part = part.split('=')
-        members_of[part[0]].append(part[1])
+    mo = attrs.get('memberOf', [])
+
+    # ensure memberOf is populated
+    if not mo:
+        return Response(content="No memberOf attribute found", status_code=400)
+    
+    # [role, class memberships...]
+    membership = []
+    is_professor = False
+
+    for group in mo:
+
+        # only look at common name
+        cn = None
+
+        for part in group.split(','):
+            if part.strip().startswith('CN='):
+                cn = part.split('=')[1].strip()
+                break
+
+        if not cn:
+            continue
+
+        # role detection
+        if cn == 'AU_Teaching':
+            is_professor = True
+            continue
+
+        # ignore student flag
+        elif cn == 'AUA_Student_Gids':
+            continue
+
+        # class number detection
+        else:
+            membership.append(cn)
+
+    # determine role (default to student)
+    if is_professor:
+        membership.insert(0, 'professor')
+    else:
+        membership.insert(0, 'student')
+
+
 
     return RedirectResponse('/', status_code=302)
 
