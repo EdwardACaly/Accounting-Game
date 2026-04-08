@@ -11,15 +11,19 @@ export class GameOverScene extends Scene {
   init(data) {
     this.end_points = (data && (data.points ?? data.score)) || 0;
     this.gameKey = (data && (data.gameKey ?? data.mode)) || "MainScene";
+
+    // PULL FROM REGISTRY INSTEAD
+    const startTime = this.registry.get('levelStartTime');
     
-    // NEW UNIVERSAL CALCULATION
-    if (this.game.levelStartTime) {
-        const msElapsed = Date.now() - this.game.levelStartTime;
-        this.timeSpentPlaying = Math.floor(msElapsed / 1000);
-        // Reset it so it doesn't leak into the next game
-        this.game.levelStartTime = null; 
+    if (startTime) {
+        this.timeSpentPlaying = Math.floor((Date.now() - startTime) / 1000);
+        console.log("Calculated Time from Registry:", this.timeSpentPlaying);
+        
+        // Clear it so it doesn't persist
+        this.registry.remove('levelStartTime');
     } else {
         this.timeSpentPlaying = 0;
+        console.warn("Registry was empty!");
     }
 }
 
