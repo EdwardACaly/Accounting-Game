@@ -260,7 +260,7 @@ def preview_rank(game: str, score: int, n: int = TOP_N):
 # SAML ---------------------------------------------------------------------------------------------------------------
 
 
-SAML_PATH = os.path.join(os.path.dirname(__file__), 'saml')
+SAML_PATH = os.getenv('SAML_PATH', os.path.join(os.path.dirname(__file__), 'saml'))
 
 def prepare_fastapi_request(request: Request, body: dict = {}):
     return {
