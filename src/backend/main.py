@@ -93,7 +93,7 @@ DO UPDATE SET
 """
 
 SQL_INSERT_SESSION = """
-INSERT INTO public.game_analytics (game, username, score, time_played_seconds)
+INSERT INTO public.game_analytics (game, username, score, time_played)
 VALUES (%s, %s, %s, %s)
 RETURNING id;
 """

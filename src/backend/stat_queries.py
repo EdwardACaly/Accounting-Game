@@ -51,7 +51,7 @@ SELECT
     p.first_name, 
     p.last_name, 
     p.username, 
-    SUM(g.time_played_seconds) as total_time_seconds
+    SUM(g.time_played) as total_time_seconds
 FROM public.player_profiles p
 JOIN public.game_analytics g ON p.username = g.username
 WHERE p.section = %s
