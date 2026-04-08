@@ -56,6 +56,9 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],        # <-- allow all methods (GET, POST, etc.)
     allow_headers=["*"],        # <-- allow all headers
+
+    access_control_allow_origin="*",    # <-- allow all origins in response header (for testing; adjust for production!
+    withCredentials=True
 )
 
 
@@ -317,8 +320,8 @@ async def saml_acs(request: Request):
     if not mo:
         return Response(content="No memberOf attribute found", status_code=400)
     
-    # [role, class memberships...]
-    membership = []
+    # [name, role, class memberships...]
+    membership = [nameid]
     is_professor = False
 
     for group in mo:
@@ -349,11 +352,11 @@ async def saml_acs(request: Request):
 
     # determine role (default to student)
     if is_professor:
-        membership.insert(0, 'professor')
+        membership.insert(1, 'professor')
     else:
-        membership.insert(0, 'student')
+        membership.insert(1, 'student')
 
-
+    
 
     return RedirectResponse('/', status_code=302)
 
