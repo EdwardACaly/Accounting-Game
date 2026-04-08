@@ -401,8 +401,10 @@ export default class GM3Level1 extends BaseGM3Scene {
 
 
       //time tracking for analytics - store the timestamp of when the level actually starts (after countdown)
-      this.game.levelStartTime = Date.now();
-      console.log(`[Timer] Started for ${this.scene.key} at: ${this.game.levelStartTime}`);
+      //this.game.levelStartTime = Date.now();
+
+      this.registry.set('levelStartTime', Date.now());
+      console.log("Registry Start Time Set:", this.registry.get('levelStartTime'));
 
       this.timerEvent = this.time.addEvent({
         delay: 1000,
