@@ -93,7 +93,7 @@ export class Leaderboard extends Scene {
 
         // --- Mode Buttons ---
         const modes = [
-            { label: "Dr. vs. Cr.", key: "game1" },
+            { label: "Db. vs. Cr.", key: "game1" },
             { label: "Elements", key: "game2" },
             { label: "Balance", key: "game3-1" },
             { label: "Effects", key: "game3-2" },
@@ -220,7 +220,7 @@ export class Leaderboard extends Scene {
             const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
             const apiBase = isLocal 
                 ? "http://localhost:8000" 
-                : "http://accounting-game.cse.eng.auburn.edu/api";
+                : "https://accounting-game.cse.eng.auburn.edu/api";
 
             let url = `${apiBase}/leaderboard/${mode}`;
         

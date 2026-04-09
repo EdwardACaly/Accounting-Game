@@ -38,11 +38,20 @@ export default class AdminDash extends Scene {
             this.input.off('wheel'); 
         }
 
+        // game names for the 5 games, coming from spreadsheet
+        const GAME_NAMES = {
+            "game1":   "Db. vs. Cr.",
+            "game2":   "Elements",
+            "game3-1": "Balance",
+            "game3-2": "Effects",
+            "game3-3": "Errors",
+        };
+
         // Move the container slightly lower so the Title (at -60) stays within the mask
         this.statsContainer = this.add.container(this.scale.width / 2, 220);
 
         try {
-            const response = await fetch(`http://accounting-game.cse.eng.auburn.edu${endpoint}`);
+            const response = await fetch(`https://accounting-game.cse.eng.auburn.edu${endpoint}`);
             const data = await response.json();
 
             let yOffset = 0;
@@ -57,21 +66,24 @@ export default class AdminDash extends Scene {
             // 2. DATA RENDERING
             if (type === "global") {
                 data.forEach(item => {
-                    const row = `${item.game.padEnd(8)} | ${item.score.toString().padStart(5)} | ${item.student.padEnd(15)} (Sec ${item.section})`;
+                    const gameName = GAME_NAMES[item.game] || item.game;
+                    const row = `${gameName.padEnd(12)} | ${item.score.toString().padStart(5)} | ${item.student.padEnd(15)} (Sec ${item.section})`;
                     this.statsContainer.add(this.add.text(0, yOffset, row, { fontFamily: "Courier", fontSize: "16px", color: "#ffffff" }).setOrigin(0.5));
                     yOffset += rowSpacing;
                 });
             } else if (type === "all") {
                 // Fix: 'all-students' returns a direct list [], not a dictionary
                 data.forEach(s => {
-                    const row = `S${s.section} | ${s.name.padEnd(12)} | ${s.game.padEnd(8)} | Avg: ${s.avg.toFixed(0)} | T: ${s.top}`;
+                    const gameName = GAME_NAMES[s.game] || s.game;
+                    const row = `S${s.section} | ${s.name.padEnd(12)} | ${gameName.padEnd(12)} | Avg: ${s.avg.toFixed(0)} | T: ${s.top}`;
                     this.statsContainer.add(this.add.text(0, yOffset, row, { fontFamily: "Courier", fontSize: "14px", color: "#00ff00" }).setOrigin(0.5));
                     yOffset += rowSpacing;
                 });
             } else {
                 // Section view uses .student_breakdown
                 data.student_breakdown.forEach(s => {
-                    const row = `${s.name.padEnd(15)} | ${s.game.padEnd(8)} | Avg: ${s.avg.toFixed(0)} | T: ${s.top} | B: ${s.bottom}`;
+                    const gameName = GAME_NAMES[s.game] || s.game;
+                    const row = `${s.name.padEnd(15)} | ${gameName.padEnd(8)} | Avg: ${s.avg.toFixed(0)} | T: ${s.top} | B: ${s.bottom}`;
                     this.statsContainer.add(this.add.text(0, yOffset, row, { fontFamily: "Courier", fontSize: "15px", color: "#ffffff" }).setOrigin(0.5));
                     yOffset += rowSpacing;
                 });
@@ -81,7 +93,7 @@ export default class AdminDash extends Scene {
 
             if (this.downloadBtn) this.downloadBtn.destroy();
             this.downloadBtn = this.createSmallBtn(this.scale.width - 80, 100, "CSV", () => {
-                window.open(`http://accounting-game.cse.eng.auburn.edu${endpoint}/csv`, "_blank");
+                window.open(`https://accounting-game.cse.eng.auburn.edu${endpoint}/csv`, "_blank");
             });
 
         } catch (e) {

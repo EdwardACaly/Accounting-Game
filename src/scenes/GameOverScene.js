@@ -264,7 +264,7 @@ export class GameOverScene extends Scene {
 
     const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
     // --- FIXED: Removed /api to match main.py route ---
-    const apiBase = isLocal ? "http://localhost:8000" : "http://accounting-game.cse.eng.auburn.edu/api"; 
+    const apiBase = isLocal ? "http://localhost:8000" : "https://accounting-game.cse.eng.auburn.edu/api"; 
 
     try {
       const res = await fetch(`${apiBase}/submit`, {
@@ -350,7 +350,7 @@ export class GameOverScene extends Scene {
 
         const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
         // --- FIXED: Removed /api to match main.py route ---
-        const apiBase = isLocal ? "http://localhost:8000" : "http://accounting-game.cse.eng.auburn.edu/api"; 
+        const apiBase = isLocal ? "http://localhost:8000" : "https://accounting-game.cse.eng.auburn.edu/api"; 
 
         const res = await fetch(`${apiBase}/submit`, {
           method: "POST",

@@ -7,7 +7,7 @@ DB_CONFIG = {
     "dbname": "leaderboard",
     "user": "postgres",
     "password": "Turmoil4-Mouse8-Attic8-Shorthand4-Catsup8", 
-    "host": "localhost",
+    "host": "127.0.0.1",
     "port": "5432"
 }
 
@@ -63,7 +63,7 @@ def populate():
                     score = random.randint(500, 2500)
                     time_played = random.randint(60, 300)
                     cur.execute(
-                        "INSERT INTO public.game_analytics (game, username, score, time_played_seconds) VALUES (%s, %s, %s, %s)",
+                        "INSERT INTO public.game_analytics (game, username, score, time_played) VALUES (%s, %s, %s, %s)",
                         (game, username, score, time_played)
                     )
         

@@ -72,12 +72,12 @@ class LeaderboardRow(BaseModel):
 
 SQL_GET_LEADERBOARD = """
 SELECT 
-    RANK() OVER (ORDER BY score DESC, created_at ASC) AS rank,
+    RANK() OVER (ORDER BY score DESC, played_at ASC) AS rank,
     score, 
     UPPER(SUBSTRING(username, 1, 3)) AS username
 FROM public.game_analytics
 WHERE game = %s
-ORDER BY score DESC, created_at ASC
+ORDER BY score DESC, played_at ASC
 LIMIT %s;
 """
 
@@ -263,7 +263,7 @@ def preview_rank(game: str, score: int, n: int = TOP_N):
 # SAML ---------------------------------------------------------------------------------------------------------------
 
 
-SAML_PATH = os.path.join(os.path.dirname(__file__), 'saml')
+SAML_PATH = os.getenv('SAML_PATH', os.path.join(os.path.dirname(__file__), 'saml'))
 
 def prepare_fastapi_request(request: Request, body: dict = {}):
     return {
