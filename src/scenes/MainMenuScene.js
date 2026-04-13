@@ -61,7 +61,7 @@ export class MainMenuScene extends Scene {
       if (option === "accounting") return "The Five Elements";
       if (option === "gamemode3") return "Accounting Equation";
       return option;
-    }; // <--- ADDED CLOSING BRACKET HERE
+    }; 
 
     const createButton = (x, y, labelText, onClick) => {
       const border = this.add.rectangle(0, 0, 304, 64, 0x7f1a02).setDepth(3).setStrokeStyle(3, 0xdcc89f);
@@ -76,18 +76,17 @@ export class MainMenuScene extends Scene {
       rect.setInteractive({ useHandCursor: true });
 
       rect.on("pointerdown", () => {
-        // LOGIC CHECK: Prevent clicks if SSO is not done
+        // Prevent interaction if SSO not done
         if (!sessionStorage.getItem('sso_completed')) return;
         
         if ((this.game.sfxVolume ?? this.sound.volume) > 0) this.sound.play("selection");
         const tween = this.tweens.add({ targets: button, scale: 0.9, duration: 80, yoyo: true, ease: "Power1" });
         tween.once("complete", onClick);
       });
-      // ... rest of your button hover tweens ...
       return button;
     };
 
-    // --- Generate Buttons ---
+    // --- Generate Menu Buttons ---
     const spacing = 85;
     const startY = height / 2 - ((options.length - 1) * spacing) / 2 + 50;
     options.forEach((option, index) => {
@@ -97,15 +96,41 @@ export class MainMenuScene extends Scene {
       });
     });
 
-    // --- Icons (Settings/Leaderboard) ---
-    // (Your existing settingsIcon and leader_icon code goes here)
+    // --- RESTORED: Icons (Settings/Leaderboard) ---
+    const ICON_Y = 50;
+    const ICON_MARGIN = 45;
+    const BASE_SCALE = 0.075;
+
+    // Settings Icon
+    const settingsIcon = this.add.image(ICON_MARGIN, ICON_Y, "settingsIcon")
+      .setInteractive({ useHandCursor: true })
+      .setScale(BASE_SCALE)
+      .setDepth(10); // High depth to stay above FG/Clouds
+
+    settingsIcon.on("pointerdown", () => {
+      if (!sessionStorage.getItem('sso_completed')) return;
+      if ((this.game.sfxVolume ?? this.sound.volume) > 0) this.sound.play("selection");
+      this.scene.start("SettingsScene");
+    });
+
+    // Leaderboard Icon
+    const leader_icon = this.add.image(width - ICON_MARGIN, ICON_Y, "leaderboardIcon")
+      .setInteractive({ useHandCursor: true })
+      .setScale(BASE_SCALE)
+      .setDepth(10);
+
+    leader_icon.on("pointerdown", () => {
+      if (!sessionStorage.getItem('sso_completed')) return;
+      if ((this.game.sfxVolume ?? this.sound.volume) > 0) this.sound.play("selection");
+      this.scene.start("Leaderboard");
+    });
 
     // --- SSO OVERLAY LOGIC ---
-    // Define it inside create so it has access to the scene context if needed
     const createSSOOverlay = () => {
       if (sessionStorage.getItem('sso_completed')) return;
 
       const overlay = document.createElement('div');
+      overlay.id = 'login-modal-overlay'; // Added ID for easier debugging
       Object.assign(overlay.style, {
           position: 'fixed', top: '0', left: '0', width: '100vw', height: '100vh',
           backgroundColor: 'rgba(255, 255, 255, 0.2)', backdropFilter: 'blur(10px)',
