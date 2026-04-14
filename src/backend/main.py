@@ -290,7 +290,6 @@ async def saml_metadata(request: Request):
 @app.get('/saml/login', tags=["SAML"])
 async def saml_login(request: Request):
     req = prepare_fastapi_request(request)
-    print("DEBUG: Initiating SAML login")
     auth = OneLogin_Saml2_Auth(req, custom_base_path=SAML_PATH)
     return RedirectResponse(auth.login())
 
@@ -315,7 +314,6 @@ async def saml_acs(request: Request):
 
     # ===PARSING===
     # parse the memberOf attribute for section info + student/professor
-    print("DEBUG: Beginning parsing")
     mo = attrs.get('memberOf', [])
 
     # ensure memberOf is populated
@@ -358,8 +356,6 @@ async def saml_acs(request: Request):
 
     # save the parsed info in the session
     request.session['user'] = user_data
-
-    print("DEBUG: User authenticated:", user_data)
 
     return RedirectResponse('/', status_code=302)
 
