@@ -34,5 +34,3 @@ __pycache__/
 # SAML certificates
 src/backend/saml/certs/*
 !src/backend/saml/certs/.gitkeep
-
-.env
