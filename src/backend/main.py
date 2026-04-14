@@ -22,6 +22,16 @@ import io
 import csv
 from fastapi.responses import StreamingResponse
 
+import logging
+
+logging.basicConfig(
+    filename='saved_saml.log',
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger("SAML")
+logger.setLevel(logging.INFO)
+
 load_dotenv()
 
 DATABASE_URL = os.getenv("DATABASE_URL")
@@ -353,6 +363,8 @@ async def saml_acs(request: Request):
         # class number detection
         else:
             user_data["sections"].append(cn)
+
+    logger.info(f"SAML Login successful for {nameid}. Professor: {user_data['is_professor']}. Sections: {', '.join(user_data['sections'])}")
 
     # save the parsed info in the session
     request.session['user'] = user_data
