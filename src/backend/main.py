@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 from fastapi import FastAPI, HTTPException, Body, Query, Path, Request
 from fastapi.responses import RedirectResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.sessions import SessionMiddleware
 import psycopg2
 from psycopg2.pool import SimpleConnectionPool
 from contextlib import asynccontextmanager
@@ -56,11 +57,10 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],        # <-- allow all methods (GET, POST, etc.)
     allow_headers=["*"],        # <-- allow all headers
-
-    access_control_allow_origin="*",    # <-- allow all origins in response header (for testing; adjust for production!
-    withCredentials=True
 )
 
+# Session middleware for storing parsed user info
+app.add_middleware(SessionMiddleware, secret_key=os.getenv("SESSION_SECRET"))
 
 
 class LeaderboardRow(BaseModel):
@@ -290,6 +290,7 @@ async def saml_metadata(request: Request):
 @app.get('/saml/login', tags=["SAML"])
 async def saml_login(request: Request):
     req = prepare_fastapi_request(request)
+    print("DEBUG: Initiating SAML login")
     auth = OneLogin_Saml2_Auth(req, custom_base_path=SAML_PATH)
     return RedirectResponse(auth.login())
 
@@ -314,6 +315,7 @@ async def saml_acs(request: Request):
 
     # ===PARSING===
     # parse the memberOf attribute for section info + student/professor
+    print("DEBUG: Beginning parsing")
     mo = attrs.get('memberOf', [])
 
     # ensure memberOf is populated
@@ -321,8 +323,11 @@ async def saml_acs(request: Request):
         return Response(content="No memberOf attribute found", status_code=400)
     
     # [name, role, class memberships...]
-    membership = [nameid]
-    is_professor = False
+    user_data = {
+        "nameid": nameid,
+        "is_professor": False,
+        "sections": []
+    }
 
     for group in mo:
 
@@ -338,8 +343,9 @@ async def saml_acs(request: Request):
             continue
 
         # role detection
+        # only needs to detect one professor flag
         if cn == 'AU_Teaching':
-            is_professor = True
+            user_data["is_professor"] = True
             continue
 
         # ignore student flag
@@ -348,15 +354,12 @@ async def saml_acs(request: Request):
 
         # class number detection
         else:
-            membership.append(cn)
+            user_data["sections"].append(cn)
 
-    # determine role (default to student)
-    if is_professor:
-        membership.insert(1, 'professor')
-    else:
-        membership.insert(1, 'student')
+    # save the parsed info in the session
+    request.session['user'] = user_data
 
-    
+    print("DEBUG: User authenticated:", user_data)
 
     return RedirectResponse('/', status_code=302)
 

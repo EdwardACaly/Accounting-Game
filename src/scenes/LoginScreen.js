@@ -188,11 +188,12 @@ export default class LoginScreen extends Phaser.Scene {
     try {
         const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
         const apiBase = isLocal ? "http://localhost:8000" : "https://accounting-game.cse.eng.auburn.edu/api"; 
-        const backendURL = `${apiBase}/saml/fake-login`;
+        const backendURL = `${apiBase}/saml/login`;
       
         const response = await fetch(backendURL, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
+            credentials: "include", // Important for cookies/session
             body: JSON.stringify(payload)
         });
 
