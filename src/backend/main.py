@@ -302,6 +302,7 @@ async def saml_metadata(request: Request):
 async def saml_login(request: Request):
     req = prepare_fastapi_request(request)
     auth = OneLogin_Saml2_Auth(req, custom_base_path=SAML_PATH)
+    logger.info(f"Redirect URL: {auth.login()}")
     return RedirectResponse(auth.login())
 
 # IdP posts SAML response here after login, we then validate it and extract user info
