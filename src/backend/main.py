@@ -31,6 +31,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger("SAML")
 logger.setLevel(logging.INFO)
+logger.info("SAML Logger initialized.")
 
 load_dotenv()
 
