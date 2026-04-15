@@ -279,6 +279,7 @@ def prepare_fastapi_request(request: Request, body: dict = {}):
     return {
         'https': 'on' if request.url.scheme == 'https' else 'off',
         'http_host': request.headers.get('host', request.url.hostname),
+        'server_port': str(request.url.port or 8000),
         'script_name': request.url.path,
         'get_data': dict(request.query_params),
         'post_data': body
