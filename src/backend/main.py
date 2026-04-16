@@ -277,9 +277,9 @@ SAML_PATH = os.getenv('SAML_PATH', os.path.join(os.path.dirname(__file__), 'saml
 
 def prepare_fastapi_request(request: Request, body: dict = {}):
     return {
-        'https': 'on' if request.url.scheme == 'https' else 'off',
-        'http_host': request.headers.get('host', request.url.hostname),
-        'server_port': str(request.url.port or 8000),
+        'https': request.headers.get('x-forwarded-proto', 'http'),
+        'http_host': request.headers.get('x-forwarded-host', request.headers.get('host')),
+        'server_port': request.headers.get('x-forwarded-port', '443'),
         'script_name': request.url.path,
         'get_data': dict(request.query_params),
         'post_data': body
