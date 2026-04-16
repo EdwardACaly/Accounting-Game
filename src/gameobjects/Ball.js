@@ -6,12 +6,13 @@ export class Ball extends GameObjects.Container {
     state = null;
     direction_belt_label = null;
 
-    constructor(scene, x, y, name, type, difficulty) {
+    constructor(scene, x, y, name, type, isTutorial) {
         super(scene, x, y);
 
         this.name = name;
         this.type = type;
         this.scene = scene;
+	this.isTutorial = isTutorial;
 
         this.baseScale = 1;
         this.hoverScale = 0.95; // shrink slightly when hovered
@@ -27,7 +28,7 @@ export class Ball extends GameObjects.Container {
             .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
             .join(" ");
         const textContent =
-            difficulty === 0
+            this.isTutorial
                 ? this.formatTextToSquare(`${this.name}-${typeAsText}`)
                 : this.formatTextToSquare(this.name);
 
