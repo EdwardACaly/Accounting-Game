@@ -11,6 +11,7 @@ export class GameOverScene extends Scene {
   init(data) {
     this.end_points = (data && (data.points ?? data.score)) || 0;
     this.gameKey = (data && (data.gameKey ?? data.mode)) || "MainScene";
+    this.isTutorial = data?.isTutorial ?? false; // tutorial?
 
     // PULL FROM REGISTRY INSTEAD
     const startTime = this.registry.get('levelStartTime');
@@ -161,7 +162,10 @@ export class GameOverScene extends Scene {
 
     const savedUsername = localStorage.getItem("game_username");
 
-    if (savedUsername) {
+    // block manual submission if tutorial
+    if (this.isTutorial) {
+    	this._line(centerX, centerY + 52, "Tutorial mode — leaderboard disabled", 0x8b0000);
+    } else if (savedUsername) {
         this._autoSubmitScore(centerX, centerY + 52, savedUsername);
     } else {
         this.showQualificationUI(centerX, centerY + 52);
@@ -260,6 +264,13 @@ export class GameOverScene extends Scene {
   }
 
   async _autoSubmitScore(centerX, centerY, savedUsername) {
+
+    // block auto submit for tutorial
+    if (this.isTutorial) {
+        this._line(centerX, centerY, "Congrats on completing the tutorial!", 0x8b0000);
+        return;
+    }
+
     this._line(centerX, centerY, "Saving session data...", 0x2e7d32);
 
     const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";

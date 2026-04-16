@@ -387,7 +387,7 @@ export class MainScene extends Scene {
             starting_conveyor_belt.y,
             elem.name,
             elem.type,
-            this.difficulty
+            this.isTutorial
         );
 
         ball.points = elem.points;
@@ -761,7 +761,8 @@ export class MainScene extends Scene {
             this.checkForBall(ball, basket)
         );
 
-        this.game.events.once("start-game", () => {
+        this.game.events.once("start-game", (data) => {
+	    this.isTutorial = data?.isTutorial ?? false; // game or tutorial?
             this.scene.stop("MenuScene");
             this.input.setDefaultCursor("none"); // hide mouse in gameplay
 
@@ -773,7 +774,7 @@ export class MainScene extends Scene {
             
     console.log(`[Timer] MainScene started: ${this.game.levelStartTime}`);
             
-            this.difficulty = parseInt(localStorage.getItem("difficulty") || 1);
+            //this.difficulty = parseInt(localStorage.getItem("difficulty") || 1);
             this.time.addEvent({
 		// ADDED: speed multiplier
                 delay: this.config.time_between_ball_spawns / this.speedMultiplier,
@@ -796,6 +797,7 @@ export class MainScene extends Scene {
                         this.scene.start("GameOverScene", {
                             points: this.points,
                             gameKey: this.game_key,
+			    isTutorial: this.isTutorial, // TUTORIAL INDICATOR -> no score
                             //timeSpentPlaying: Math.floor((this.time.now - this.startTime) / 1000), // This was broken anyway
                         });
                     } else {
