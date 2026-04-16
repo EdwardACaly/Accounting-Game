@@ -25,7 +25,6 @@ from fastapi.responses import StreamingResponse
 import logging
 
 logging.basicConfig(
-    filename='saved_saml.log',
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
