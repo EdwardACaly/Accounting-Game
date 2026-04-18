@@ -696,7 +696,7 @@ export class MainScene extends Scene {
             );
             basket.body.setSize(basket.width * 0.9, basket.height * 0.7);
             basket.body.setOffset(basket.width * 0.05, basket.height * 0.15);
-            // 🔧 Adjust basket positions to make room for long text
+            // Adjust basket positions to make room for long text
             if (basket.type === "Expenses/Losses") {
                 basket.x += 10; // move left a bit
             } else if (basket.type === "Revenues/Gains") {
