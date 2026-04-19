@@ -16,6 +16,8 @@ export class Leaderboard extends Scene {
         this.add.image(0, 0, "home_bg")
             .setOrigin(0, 0)
             .setDisplaySize(this.scale.width, this.scale.height);
+
+        // foreground
         this.add.image(0, 0, "home_fg")
             .setOrigin(0, 0)
             .setDisplaySize(this.scale.width, this.scale.height);
@@ -93,7 +95,7 @@ export class Leaderboard extends Scene {
 
         // --- Mode Buttons ---
         const modes = [
-            { label: "Db. vs. Cr.", key: "game1" },
+            { label: "Dr. vs. Cr.", key: "game1" },
             { label: "Elements", key: "game2" },
             { label: "Balance", key: "game3-1" },
             { label: "Effects", key: "game3-2" },
@@ -103,13 +105,36 @@ export class Leaderboard extends Scene {
         const createButton = (relX, relY, labelText, onClick) => {
             const rect = this.add.rectangle(0, 0, 125, 50, 0x7f1a02).setStrokeStyle(3, 0xdcc89f);
             const label = this.add.text(0, 0, labelText, {
-                fontSize: "26px",
+                fontSize: "30px",
                 fontFamily: '"Jersey 10", sans-serif',
                 color: "#dcc89f",
+                align: "center",
+                //wordWrap: { width: 90, useAdvancedWrap: true },  // wrap text within button width
             }).setOrigin(0.5);
+
             const button = this.add.container(relX, relY, [rect, label]);
             rect.setInteractive({ useHandCursor: true });
-            rect.on("pointerdown", onClick);
+
+            rect.on("pointerover", () => {
+                rect.setFillStyle(0xa8321a);
+                this.tweens.add({ targets: button, scale: 1.05, duration: 150, ease: "Power1" });
+            });
+            rect.on("pointerout", () => {
+                rect.setFillStyle(0x7f1a02);
+                this.tweens.add({ targets: button, scale: 1, duration: 150, ease: "Power1" });
+            });
+            rect.on("pointerdown", () => {
+                if ((this.game.sfxVolume ?? this.sound.volume) > 0) this.sound.play("selection");
+                const tween = this.tweens.add({
+                    targets: button,
+                    scale: 0.9,
+                    duration: 80,
+                    yoyo: true,
+                    ease: "Power1",
+                });
+                tween.once("complete", onClick);
+            });
+
             return button;
         };
 
@@ -122,8 +147,63 @@ export class Leaderboard extends Scene {
             this.leaderboardContainer.add(btn);
         });
 
+
+        // Exit button
         const exitBtn = createButton(-panelWidth / 2 + 72.5, -panelHeight / 2 + 35, "Exit", () => this.scene.start("MainMenuScene"));
         this.leaderboardContainer.add(exitBtn);
+
+
+        // Dashboard Arrow
+
+        // check type of user (admin, professor, other)
+        /*        
+        const dashTarget = userRole === "admin" ? "AdminDash" :
+                           userRole === "professor" ? "ProfessorDash" :
+                           null;
+        */
+
+        // MANUAL ENTRY BEFORE LOGIC (can set dashTarget to one of 3 values above)
+        const dashTarget = null
+
+        // if admin/prof, draw arrow to correct dashboard
+        if (dashTarget) {
+            const width = 95;
+            const height = 40;
+            
+            const dashRect = this.add.rectangle(0, 0, width, height, 0x7f1a02).setStrokeStyle(3, 0xdcc89f);
+            const dashArrow = this.add.text(0, 0, "→", {
+                fontSize: "32px",
+                fontFamily: '"Jersey 10", sans-serif',
+                color: "#dcc89f",
+                stroke: "#dcc89f",
+                align: "center",
+                strokeThickness: 2,
+            }).setOrigin(0.5);
+
+            const dashButton = this.add.container(this.scale.width - 65, this.scale.height / 2, [dashRect, dashArrow]);
+            dashRect.setInteractive({ useHandCursor: true });
+            
+            dashRect.on("pointerover", () => {
+                dashRect.setFillStyle(0xa8321a);
+                this.tweens.add({ targets: dashButton, scale: 1.05, duration: 150, ease: "Power1" });
+            });
+            dashRect.on("pointerout", () => {
+                dashRect.setFillStyle(0x7f1a02);
+                this.tweens.add({ targets: dashButton, scale: 1, duration: 150, ease: "Power1" });
+            });
+            dashRect.on("pointerdown", () => {
+                if ((this.game.sfxVolume ?? this.sound.volume) > 0) this.sound.play("selection");
+                const tween = this.tweens.add({
+                    targets: dashButton,
+                    scale: 0.9,
+                    duration: 80,
+                    yoyo: true,
+                    ease: "Power1",
+                });
+                tween.once("complete", () => this.scene.start(dashTarget));
+            });
+        }
+        
 
         // --- Scrollable Area Setup ---
         const maskTopY_Rel = -panelHeight / 2 + 80;
@@ -264,6 +344,15 @@ export class Leaderboard extends Scene {
             this.updateScroll(this.maskVisibleHeight, this.relMaskTopY);
         } catch (err) {
             console.error(err);
+            const msg = this.add.text(0, 20, "Error loading leaderboard", {
+                fontSize: "20px",
+                fill: "#ff4444",
+                fontFamily: '"Jersey 10", sans-serif',
+            }).setOrigin(0.5, 0);
+            this.tableGroup.add(msg);
+            this.contentHeight = 40;
+            this.scrollY = 0;
+            this.updateScroll(maskVisibleHeight, maskTopY);
         }
     }
 }

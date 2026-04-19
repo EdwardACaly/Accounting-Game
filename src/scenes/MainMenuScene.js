@@ -30,21 +30,44 @@ export class MainMenuScene extends Scene {
   create() {
     const { width, height } = this.scale;
 
-    // --- Restore global SFX/music volume ---
+    // --- Restore global SFX/music volume BEFORE any sound plays ---
     const vol = this._readSavedVolume();
     this.game.sfxVolume = vol;
     this.sound.volume = vol;
 
-    // --- Backgrounds & Clouds ---
-    this.add.image(width / 2, height / 2, "home_bg").setOrigin(0.5).setDisplaySize(width, height).setDepth(0);
-    this.add.image(width / 2, height / 2, "home_fg").setOrigin(0.5).setDisplaySize(width, height).setDepth(2);
-    this.clouds = this.add.image(width / 2, height / 2 - 25, "home_clouds").setOrigin(0.55).setScale(0.8).setDepth(1);
+    // --- Background ---
+    this.add
+      .image(width / 2, height / 2, "home_bg")
+      .setOrigin(0.5)
+      .setDisplaySize(width, height)
+      .setDepth(0);
+
+    // --- Foreground ---
+    this.add
+      .image(width / 2, height / 2, "home_fg")
+      .setOrigin(0.5)
+      .setDisplaySize(width, height)
+      .setDepth(2);
+
+    // --- Clouds (single sprite, Pac-Man wrap) ---
+    this.clouds = this.add
+      .image(width / 2, height / 2 - 25, "home_clouds")
+      .setOrigin(0.55)
+      .setScale(0.8)
+      .setDepth(1);
     this.cloudSpeed = 0.3;
-    this.add.image(width / 2, height / 2, "home_text").setDepth(3);
+
+    // Title Screen Text
+    this.add
+      .image(width / 2, height / 2, "home_text")
+      .setDepth(3);
     
-    // --- Music Logic ---
+    // --- Music (start 2s in). Do NOT restart if already playing. ---
     const setMusic = () => {
+      // Ensure manager knows the current volume
       this.game.musicManager?.setVolume(this.game.sfxVolume ?? 1.0);
+
+      // Only start if nothing is playing; otherwise keep the current track
       if (!this.game.musicManager?.isPlaying()) {
         this.game.musicManager?.play(this, "menu_bgm", { seek: 2 });
       }
@@ -52,7 +75,7 @@ export class MainMenuScene extends Scene {
     if (this.sound.locked) this.sound.once("unlocked", setMusic);
     else setMusic();
 
-    // --- Menu Helper Functions ---
+    // --- Menu Buttons ---
     const options = ["debit_credit", "accounting", "gamemode3"];
     const selectedOptions = { type: "debit_credit" };
 
@@ -61,11 +84,17 @@ export class MainMenuScene extends Scene {
       if (option === "accounting") return "The Five Elements";
       if (option === "gamemode3") return "Accounting Equation";
       return option;
-    }; 
+    };
 
     const createButton = (x, y, labelText, onClick) => {
-      const border = this.add.rectangle(0, 0, 304, 64, 0x7f1a02).setDepth(3).setStrokeStyle(3, 0xdcc89f);
+      // visual body of the button
+      const border = this.add.rectangle(0, 0, 304, 64, 0x7f1a02).setDepth(3);
+      border.setStrokeStyle(3, 0xdcc89f);
+
+      // button hitbox
       const rect = this.add.rectangle(0, 0, 300, 60, 0x7f1a02).setDepth(3);
+
+      // label: text on top of button
       const label = this.add.text(0, 0, labelText, {
         fontSize: "128px",
         fontFamily: '"Jersey 10", sans-serif',
@@ -73,56 +102,140 @@ export class MainMenuScene extends Scene {
       }).setOrigin(0.5).setDepth(3).setScale(0.27);
 
       const button = this.add.container(x, y, [border, rect, label]).setDepth(3);
+
       rect.setInteractive({ useHandCursor: true });
+
+      rect.on("pointerover", () => {
+        rect.setFillStyle(0xa8321a);
+        this.tweens.add({ targets: button, scale: 1.05, duration: 150, ease: "Power1" });
+      });
+
+      rect.on("pointerout", () => {
+        rect.setFillStyle(0x7f1a02);
+        this.tweens.add({ targets: button, scale: 1, duration: 150, ease: "Power1" });
+      });
 
       rect.on("pointerdown", () => {
         // Prevent interaction if SSO not done
         if (!sessionStorage.getItem('sso_completed')) return;
-        
+
         if ((this.game.sfxVolume ?? this.sound.volume) > 0) this.sound.play("selection");
         const tween = this.tweens.add({ targets: button, scale: 0.9, duration: 80, yoyo: true, ease: "Power1" });
         tween.once("complete", onClick);
       });
+
       return button;
     };
 
-    // --- Generate Menu Buttons ---
+    const totalButtons = options.length;
+
+    // controls menu spacing and placement
     const spacing = 85;
-    const startY = height / 2 - ((options.length - 1) * spacing) / 2 + 50;
+    const blockHeight = (totalButtons - 1) * spacing;
+    const startY = height / 2 - blockHeight / 2 + 50;
+
     options.forEach((option, index) => {
-      createButton(width / 2, startY + index * spacing, get_option_text(option), () => {
-          if (option !== "gamemode3") this.game.musicManager?.stop();
-          option === "gamemode3" ? this.startGameMode3() : this.startGame({type: option});
-      });
+      createButton(
+        width / 2,
+        startY + index * spacing,
+        get_option_text(option),
+        () => {
+          selectedOptions.type = option;
+
+          // IMPORTANT:
+          // - For gamemode3 (GM3LevelSelect), DO NOT stop the menu music (carry it over).
+          // - For other modes, stop so their scenes can run their own music.
+          if (option !== "gamemode3") {
+            this.game.musicManager?.stop();
+          }
+
+          if (option === "gamemode3") {
+            this.startGameMode3(); // transitions to GM3LevelSelect with music still playing
+          } else {
+            this.startGame(selectedOptions);
+          }
+        }
+      );
     });
 
-    // --- RESTORED: Icons (Settings/Leaderboard) ---
-    const ICON_Y = 50;
-    const ICON_MARGIN = 45;
-    const BASE_SCALE = 0.075;
+    // ***** ICONS *****
+
+    // --- Icon constants ---
+    const ICON_Y = 50;    // y-pos of icons
+    const ICON_MARGIN = 45;   // distance from screen edge
+    const BASE_SCALE = 0.075;    // base scale (size) for all icons
+    const HOVER_SCALE = BASE_SCALE * 1.15;    // scale on hover
 
     // Settings Icon
     const settingsIcon = this.add.image(ICON_MARGIN, ICON_Y, "settingsIcon")
       .setInteractive({ useHandCursor: true })
-      .setScale(BASE_SCALE)
-      .setDepth(10); // High depth to stay above FG/Clouds
+      .setScale(BASE_SCALE).setDepth(5);
 
-    settingsIcon.on("pointerdown", () => {
-      if (!sessionStorage.getItem('sso_completed')) return;
-      if ((this.game.sfxVolume ?? this.sound.volume) > 0) this.sound.play("selection");
-      this.scene.start("SettingsScene");
+    // behavior on mouseover
+    settingsIcon.on("pointerover", () => {
+      this.tweens.killTweensOf(settingsIcon);
+      this.tweens.add({ targets: settingsIcon, scale: HOVER_SCALE, duration: 120, ease: "Sine.easeOut" });
+      settingsIcon.setTint(0xffffff);
     });
 
+    // behavior on mouse exit
+    settingsIcon.on("pointerout", () => {
+      this.tweens.killTweensOf(settingsIcon);
+      this.tweens.add({ targets: settingsIcon, scale: BASE_SCALE, duration: 120, ease: "Sine.easeIn" });
+      settingsIcon.clearTint();
+    });
+
+    // behavior on click
+    settingsIcon.on("pointerdown", () => {
+      // Prevent interaction if SSO not done
+      if (!sessionStorage.getItem('sso_completed')) return;
+      
+      if ((this.game.sfxVolume ?? this.sound.volume) > 0) this.sound.play("selection");
+      this.tweens.killTweensOf(settingsIcon);
+      this.tweens.add({
+        targets: settingsIcon,
+        scale: BASE_SCALE * 0.92,
+        duration: 70,
+        yoyo: true,
+        ease: "Sine.easeInOut",
+        onComplete: () => this.scene.start("SettingsScene"),
+      });
+    });
+    
     // Leaderboard Icon
     const leader_icon = this.add.image(width - ICON_MARGIN, ICON_Y, "leaderboardIcon")
       .setInteractive({ useHandCursor: true })
-      .setScale(BASE_SCALE)
-      .setDepth(10);
+      .setScale(BASE_SCALE).setDepth(5);
 
+    // behavior on mouseover
+    leader_icon.on("pointerover", () => {
+      this.tweens.killTweensOf(leader_icon);
+      this.tweens.add({ targets: leader_icon, scale: HOVER_SCALE, duration: 120, ease: "Sine.easeOut" });
+      leader_icon.setTint(0xffffff);
+    });
+
+    // behavior on mouse exit
+    leader_icon.on("pointerout", () => {
+      this.tweens.killTweensOf(leader_icon);
+      this.tweens.add({ targets: leader_icon, scale: BASE_SCALE, duration: 120, ease: "Sine.easeIn" });
+      leader_icon.clearTint();
+    });
+
+    // behavior on click
     leader_icon.on("pointerdown", () => {
+      // Prevent interaction if SSO not done
       if (!sessionStorage.getItem('sso_completed')) return;
+      
       if ((this.game.sfxVolume ?? this.sound.volume) > 0) this.sound.play("selection");
-      this.scene.start("Leaderboard");
+      this.tweens.killTweensOf(leader_icon);
+      this.tweens.add({
+        targets: leader_icon,
+        scale: BASE_SCALE * 0.92,
+        duration: 70,
+        yoyo: true,
+        ease: "Sine.easeInOut",
+        onComplete: () => this.scene.start("Leaderboard"),
+      });
     });
 
     // --- SSO OVERLAY LOGIC ---
@@ -171,8 +284,30 @@ export class MainMenuScene extends Scene {
     this.time.delayedCall(1000, createSSOOverlay);
   }
 
-  
+  // OLD VOLUME SLIDER CODE, MAY REUSE
+  /*
+    // --- Volume Button (top-left) ---
+    this.volumeButton = this.add.circle(ICON_MARGIN, ICON_Y, 63, 0x7f1a02)
+      .setDepth(5).setInteractive();
+    this.volumeButton.setStrokeStyle(2, 0xdcc89f);
 
+    // Icon
+    this.volumeIcon = this.add.image(ICON_MARGIN, ICON_Y, "volumeIcon")
+      .setDisplaySize(100, 100).setDepth(6);
+
+    // Hover effect
+    this.volumeButton.on("pointerover", () => this.volumeButton.setFillStyle(0xa8321a));
+
+    this.volumeButton.on("pointerover", () => {
+      this.tweens.killTweensOf(volumeButton);
+      this.tweens.add({ targets: volumeButton, scale: HOVER_SCALE, duration: 120, ease: "Sine.easeOut" });
+      volumeButton.setTint(0xffffff);
+    });
+    
+    this.volumeButton.on("pointerout",  () => this.volumeButton.setFillStyle(0x7f1a02));
+    this.volumeButton.on("pointerdown", () => this.toggleVolumeSlider());
+    */
+  
 
   update() {
     if (this.clouds) {
