@@ -633,3 +633,18 @@ def register_profile(payload: dict = Body(...)):
         return {"status": "success"}
     finally:
         pool.putconn(conn)
+
+# clear all student data
+@app.delete("/admin/clear-data", tags=["Admin"])
+async def clear_data():
+    if pool is None:
+        raise HTTPException(status_code=500, detail="DB not initialized")
+    conn = pool.getconn()
+    try:
+        with conn:
+            with conn.cursor() as cur:
+                # previously: cur.execute("TRUNCATE public.game_analytics, public.player_profiles RESTART IDENTITY CASCADE;")
+                cur.execute("TRUNCATE public.game_analytics, public.player_profiles CASCADE;")
+        return {"status": "success", "message": "All data cleared"}
+    finally:
+        pool.putconn(conn)

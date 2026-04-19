@@ -26,6 +26,9 @@ export default class AdminDash extends Scene {
         this.createSmallBtn(680, 100, "ALL STUDENTS", () => 
             this.loadData(`/api/stats/admin/all-students`, "Complete Roster", "all"));
 
+        // clear data button
+        this.createSmallBtn(880, 100, "CLEAR DATA", () => this.showClearConfirm());
+
         // Return Button (Bottom)
         this.createSmallBtn(this.scale.width / 2, this.scale.height - 40, "Return to Student View", () => {
             this.scene.start("MainMenuScene");
@@ -125,4 +128,103 @@ export default class AdminDash extends Scene {
             fontSize: "18px", fontFamily: '"Jersey 10", sans-serif', backgroundColor: "#333", padding: 8, color: "#dcc89f"
         }).setOrigin(0.5).setInteractive({ useHandCursor: true }).on("pointerdown", callback);
     }
+    showClearConfirm() {
+    const overlay = this.add.rectangle(
+        this.scale.width / 2, this.scale.height / 2,
+        this.scale.width, this.scale.height,
+        0x000000, 0.7
+    ).setDepth(10);
+
+    const box = this.add.rectangle(
+        this.scale.width / 2, this.scale.height / 2,
+        500, 300, 0x1a1a2e
+    ).setDepth(11).setStrokeStyle(2, 0xdcc89f);
+
+    const title = this.add.text(
+        this.scale.width / 2, this.scale.height / 2 - 100,
+        "⚠ Clear All Data?", {
+            fontSize: "28px", fontFamily: '"Jersey 10", sans-serif', color: "#ff4444"
+        }
+    ).setOrigin(0.5).setDepth(12);
+
+    const msg = this.add.text(
+        this.scale.width / 2, this.scale.height / 2 - 50,
+        "This will permanently delete all\nstudent profiles and game analytics.\nThis cannot be undone.", {
+            fontSize: "16px", fontFamily: '"Jersey 10", sans-serif',
+            color: "#ffffff", align: "center"
+        }
+    ).setOrigin(0.5).setDepth(12);
+
+    const downloadBtn = this.add.text(
+        this.scale.width / 2, this.scale.height / 2 + 20,
+        "Download Statistics First", {
+            fontSize: "18px", fontFamily: '"Jersey 10", sans-serif',
+            backgroundColor: "#1a5276", padding: 8, color: "#dcc89f"
+        }
+    ).setOrigin(0.5).setDepth(12).setInteractive({ useHandCursor: true })
+    .on("pointerdown", () => {
+        window.open("https://accounting-game.cse.eng.auburn.edu/api/stats/admin/all-students/csv", "_blank");
+    });
+
+    const cancelBtn = this.add.text(
+        this.scale.width / 2 - 100, this.scale.height / 2 + 80,
+        "Cancel", {
+            fontSize: "18px", fontFamily: '"Jersey 10", sans-serif',
+            backgroundColor: "#333", padding: 8, color: "#dcc89f"
+        }
+    ).setOrigin(0.5).setDepth(12).setInteractive({ useHandCursor: true })
+    .on("pointerdown", () => {
+        [overlay, box, title, msg, downloadBtn, cancelBtn, confirmBtn].forEach(o => o.destroy());
+    });
+
+    const confirmBtn = this.add.text(
+        this.scale.width / 2 + 100, this.scale.height / 2 + 80,
+        "Confirm Delete", {
+            fontSize: "18px", fontFamily: '"Jersey 10", sans-serif',
+            backgroundColor: "#7b241c", padding: 8, color: "#ffffff"
+        }
+    ).setOrigin(0.5).setDepth(12).setInteractive({ useHandCursor: true })
+    .on("pointerdown", () => {
+        [overlay, box, title, msg, downloadBtn, cancelBtn, confirmBtn].forEach(o => o.destroy());
+        this.clearAllData();
+    });
+}
+
+async clearAllData() {
+    try {
+        // for local testing, use localhost. For deployed version, use the production api url
+        const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+        const apiBase = isLocal ? "http://localhost:8000" : "https://accounting-game.cse.eng.auburn.edu/api";
+        const response = await fetch(
+            `${apiBase}/admin/clear-data`,
+            { method: "DELETE" }
+        );
+        
+        const result = await response.json();
+        if (result.status === "success") {
+            const msg = this.add.text(
+                this.scale.width / 2, this.scale.height / 2,
+                "✓ Data cleared successfully", {
+                    fontSize: "24px", fontFamily: '"Jersey 10", sans-serif',
+                    color: "#00ff00", backgroundColor: "#1a1a2e", padding: 12
+                }
+            ).setOrigin(0.5).setDepth(13);
+            this.time.delayedCall(2000, () => msg.destroy());
+            if (this.statsContainer) {
+                this.statsContainer.destroy();
+                this.statsContainer = null;
+            }
+        }
+    } catch (e) {
+        console.error("Clear data failed", e);
+        const msg = this.add.text(
+            this.scale.width / 2, this.scale.height / 2,
+            "✗ Failed to clear data", {
+                fontSize: "24px", fontFamily: '"Jersey 10", sans-serif',
+                color: "#ff4444", backgroundColor: "#1a1a2e", padding: 12
+            }
+        ).setOrigin(0.5).setDepth(13);
+        this.time.delayedCall(2000, () => msg.destroy());
+    }
+}
 }
