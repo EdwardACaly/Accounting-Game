@@ -30,7 +30,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger("SAML")
 logger.setLevel(logging.INFO)
-logger.info("SAML Logger initialized.")
 
 load_dotenv()
 
@@ -302,7 +301,6 @@ async def saml_metadata(request: Request):
 async def saml_login(request: Request):
     req = prepare_fastapi_request(request)
     auth = OneLogin_Saml2_Auth(req, custom_base_path=SAML_PATH)
-    logger.info(f"Redirect URL: {auth.login()}")
     return RedirectResponse(auth.login())
 
 # IdP posts SAML response here after login, we then validate it and extract user info
@@ -323,6 +321,11 @@ async def saml_acs(request: Request):
     # grab student info
     nameid = auth.get_nameid()
     attrs = auth.get_attributes()
+    first_name = attrs.get("givenName", [""])[0]
+    last_name = attrs.get("sn", [""])[0]
+
+    # save nameid for frontend as database key
+    request.session['nameid'] = nameid
 
     # ===PARSING===
     # parse the memberOf attribute for section info + student/professor
@@ -332,13 +335,12 @@ async def saml_acs(request: Request):
     if not mo:
         return Response(content="No memberOf attribute found", status_code=400)
     
-    # [name, role, class memberships...]
-    user_data = {
-        "nameid": nameid,
-        "is_professor": False,
-        "sections": []
-    }
+    # role flags
+    is_professor = False
+    is_student = False
+    sections = []
 
+    # each group is a string like "CN=2024S_ACCT2110_001,OU=Groups,DC=auburn,DC=edu"
     for group in mo:
 
         # only look at common name
@@ -352,24 +354,62 @@ async def saml_acs(request: Request):
         if not cn:
             continue
 
-        # role detection
-        # only needs to detect one professor flag
+        # raise professor flag
         if cn == 'AU_Teaching':
-            user_data["is_professor"] = True
+            is_professor = True
             continue
 
-        # ignore student flag
+        # raise student flag
         elif cn == 'AUA_Student_Gids':
-            continue
+            is_student = True
 
-        # class number detection
+        # detect sections ACCT 2110 and ACCT 5110
         else:
-            user_data["sections"].append(cn)
+            if re.match(r'^\d{4}[FS]_ACCT[25]110_\d{3}$', cn): # Ex: "2024S_ACCT2110_001"
+                sections.append(cn)
 
-    logger.info(f"SAML Login successful for {nameid}. Professor: {user_data['is_professor']}. Sections: {', '.join(user_data['sections'])}")
+    # null section if they don't belong
+    if not sections:
+        sections = None
 
-    # save the parsed info in the session
-    request.session['user'] = user_data
+    # save role
+    if is_professor and is_student:
+        request.session['role'] = 'professor_student'
+    elif is_professor:
+        request.session['role'] = 'professor'
+    elif is_student:
+        request.session['role'] = 'student'
+    else:
+        request.session['role'] = 'unknown'
+
+    #Log all saved information
+    logger.info(f"User '{nameid}' authenticated with role '{request.session['role']}'")
+
+    # Comma separate sections
+    cs_sections = ",".join(sections) if sections else None
+
+    # UPSERT the user data
+    if pool is None:
+        raise HTTPException(status_code=500, detail="DB not initialized")
+
+    conn = pool.getconn()
+    try:
+        conn.autocommit = True 
+        
+        with conn:
+            with conn.cursor() as cur:
+                cur.execute(SQL_UPSERT_USER, (
+                    nameid, 
+                    first_name, 
+                    last_name, 
+                    cs_sections if cs_sections else None
+                ))
+        conn.commit()
+        logger.info(f"Database entry created/updated for user '{nameid}' with name '{first_name} {last_name}' and sections: {cs_sections}")
+    
+    except Exception as e:
+        logger.error(f"Database error during SAML ACS processing for user '{nameid}': {e}")
+        return Response(content=f"Database error: {str(e)}", status_code=500)
 
     return RedirectResponse('/', status_code=302)
 
@@ -631,5 +671,20 @@ def register_profile(payload: dict = Body(...)):
                         section = EXCLUDED.section;
                 """, (username, first, last, section))
         return {"status": "success"}
+    finally:
+        pool.putconn(conn)
+
+# clear all student data
+@app.delete("/admin/clear-data", tags=["Admin"])
+async def clear_data():
+    if pool is None:
+        raise HTTPException(status_code=500, detail="DB not initialized")
+    conn = pool.getconn()
+    try:
+        with conn:
+            with conn.cursor() as cur:
+                # previously: cur.execute("TRUNCATE public.game_analytics, public.player_profiles RESTART IDENTITY CASCADE;")
+                cur.execute("TRUNCATE public.game_analytics, public.player_profiles CASCADE;")
+        return {"status": "success", "message": "All data cleared"}
     finally:
         pool.putconn(conn)

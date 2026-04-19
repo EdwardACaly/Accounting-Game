@@ -163,13 +163,15 @@ export class MenuScene extends Scene {
                 vertical_shift_to_center,
             "Start Game",
             () => {
-                localStorage.setItem("difficulty", "1");
+                //localStorage.setItem("difficulty", "1");
                 if (this.game.sfxVolume > 0) {
                     this.sound.play("selection", {
                         volume: this.game.sfxVolume,
                     });
                 }
-                this.game.events.emit("start-game");
+                this.game.events.emit("start-game", {
+		    isTutorial: false
+		});
             }
         );
 
@@ -181,14 +183,17 @@ export class MenuScene extends Scene {
                 vertical_shift_to_center,
             "Start Tutorial",
             () => {
-                localStorage.setItem("difficulty", "0");
+                //localStorage.setItem("difficulty", "0");
                 if (this.game.sfxVolume > 0) {
                     this.sound.play("selection", {
                         volume: this.game.sfxVolume,
                     });
                 }
-                this.game.events.emit("start-game");
-            }
+                this.game.events.emit("start-game", {
+			isTutorial: true
+		});
+            
+	    }
         );
     }
 
