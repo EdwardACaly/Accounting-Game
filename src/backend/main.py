@@ -413,6 +413,14 @@ async def saml_acs(request: Request):
 
     return RedirectResponse('/', status_code=302)
 
+# fetch userid and role for frontend
+@app.get('/fetch-user')
+async def fetch_user(request: Request):
+    return {
+        "nameid": request.session.get('nameid'),
+        "role": request.session.get('role')
+    }
+
 # handles log out requests/responses
 @app.get('/saml/sls', tags=["SAML"])
 async def saml_sls(request: Request):

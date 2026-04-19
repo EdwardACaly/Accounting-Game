@@ -173,15 +173,15 @@ export class Leaderboard extends Scene {
 
         // Dashboard Arrow
 
-        // check type of user (admin, professor, other)
-        /*        
+        const response = await fetch("/fetch-user");
+        const userRole = await response.json().then(data => data.role);
+        // check type of user (admin, professor, other)        
         const dashTarget = userRole === "admin" ? "AdminDash" :
                            userRole === "professor" ? "ProfessorDash" :
                            null;
-        */
 
         // MANUAL ENTRY BEFORE LOGIC (can set dashTarget to one of 3 values above)
-        const dashTarget = null
+        dashTarget = null
 
         // if admin/prof, draw arrow to correct dashboard
         if (dashTarget) {
