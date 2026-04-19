@@ -30,7 +30,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger("SAML")
 logger.setLevel(logging.INFO)
-logger.info("SAML Logger initialized.")
 
 load_dotenv()
 
@@ -302,7 +301,6 @@ async def saml_metadata(request: Request):
 async def saml_login(request: Request):
     req = prepare_fastapi_request(request)
     auth = OneLogin_Saml2_Auth(req, custom_base_path=SAML_PATH)
-    logger.info(f"Redirect URL: {auth.login()}")
     return RedirectResponse(auth.login())
 
 # IdP posts SAML response here after login, we then validate it and extract user info
@@ -324,9 +322,17 @@ async def saml_acs(request: Request):
     nameid = auth.get_nameid()
     attrs = auth.get_attributes()
 
+    # save nameid for frontend as database key
+    request.session['nameid'] = nameid
+
     # ===PARSING===
     # parse the memberOf attribute for section info + student/professor
     mo = attrs.get('memberOf', [])
+
+    # log every attribute for debugging
+    logger.info(f"SAML Attributes for {nameid}:")
+    for key, value in attrs.items():
+        logger.info(f"  {key}: {value}")
 
     # ensure memberOf is populated
     if not mo:
@@ -336,9 +342,11 @@ async def saml_acs(request: Request):
     user_data = {
         "nameid": nameid,
         "is_professor": False,
+        "is_student": False,
         "sections": []
     }
 
+    # 
     for group in mo:
 
         # only look at common name
@@ -358,18 +366,33 @@ async def saml_acs(request: Request):
             user_data["is_professor"] = True
             continue
 
-        # ignore student flag
+        # raise student flag
         elif cn == 'AUA_Student_Gids':
-            continue
+            user_data["is_student"] = True
 
-        # class number detection
+        # detect sections ACCT 2110 and ACCT 5110
         else:
-            user_data["sections"].append(cn)
+            if re.match(r'^\d{4}[FS]_ACCT[25]110_\d{3}$', cn): # Ex: "2024S_ACCT2110_001"
+                user_data["sections"].append(cn)
 
-    logger.info(f"SAML Login successful for {nameid}. Professor: {user_data['is_professor']}. Sections: {', '.join(user_data['sections'])}")
+    # null section if they don't belong
+    if not user_data["sections"]:
+        user_data["sections"] = None
 
-    # save the parsed info in the session
-    request.session['user'] = user_data
+    # save role
+    if user_data["is_professor"] and user_data["is_student"]:
+        request.session['role'] = 'professor_student'
+    elif user_data["is_professor"]:
+        request.session['role'] = 'professor'
+    elif user_data["is_student"]:
+        request.session['role'] = 'student'
+    else:
+        request.session['role'] = 'unknown'
+
+    logger.info(f"SAML Login successful for {nameid}.\nStudent: {user_data['is_student']}.\nProfessor: {user_data['is_professor']}.\nSections: {', '.join(user_data['sections'])}")
+
+    # # UPSERT the user data
+    # conn = pool.getconn()
 
     return RedirectResponse('/', status_code=302)
 
