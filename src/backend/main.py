@@ -321,6 +321,8 @@ async def saml_acs(request: Request):
     # grab student info
     nameid = auth.get_nameid()
     attrs = auth.get_attributes()
+    first_name = attrs.get("givenName", [""])[0]
+    last_name = attrs.get("sn", [""])[0]
 
     # save nameid for frontend as database key
     request.session['nameid'] = nameid
@@ -333,15 +335,12 @@ async def saml_acs(request: Request):
     if not mo:
         return Response(content="No memberOf attribute found", status_code=400)
     
-    # [name, role, class memberships...]
-    user_data = {
-        "nameid": nameid,
-        "is_professor": False,
-        "is_student": False,
-        "sections": []
-    }
+    # role and classes
+    is_professor = False
+    is_student = False
+    sections = []
 
-    # 
+    # each group is a string like "CN=2024S_ACCT2110_001,OU=Groups,DC=auburn,DC=edu"
     for group in mo:
 
         # only look at common name
@@ -355,36 +354,36 @@ async def saml_acs(request: Request):
         if not cn:
             continue
 
-        # role detection
-        # only needs to detect one professor flag
+        # raise professor flag
         if cn == 'AU_Teaching':
-            user_data["is_professor"] = True
+            is_professor = True
             continue
 
         # raise student flag
         elif cn == 'AUA_Student_Gids':
-            user_data["is_student"] = True
+            is_student = True
 
         # detect sections ACCT 2110 and ACCT 5110
         else:
             if re.match(r'^\d{4}[FS]_ACCT[25]110_\d{3}$', cn): # Ex: "2024S_ACCT2110_001"
-                user_data["sections"].append(cn)
+                sections.append(cn)
 
     # null section if they don't belong
-    if not user_data["sections"]:
-        user_data["sections"] = None
+    if not sections:
+        sections = None
 
     # save role
-    if user_data["is_professor"] and user_data["is_student"]:
+    if is_professor and is_student:
         request.session['role'] = 'professor_student'
-    elif user_data["is_professor"]:
+    elif is_professor:
         request.session['role'] = 'professor'
-    elif user_data["is_student"]:
+    elif is_student:
         request.session['role'] = 'student'
     else:
         request.session['role'] = 'unknown'
 
-    logger.info(f"SAML Login successful for {nameid}.\nStudent: {user_data['is_student']}.\nProfessor: {user_data['is_professor']}.\nSections: {user_data['sections']}")
+    #Log all saved information
+    logger.info(f"User '{nameid}' authenticated with role '{request.session['role']}' and sections: {sections}")
 
     # # UPSERT the user data
     # conn = pool.getconn()
