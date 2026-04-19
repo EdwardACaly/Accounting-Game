@@ -335,7 +335,7 @@ async def saml_acs(request: Request):
     if not mo:
         return Response(content="No memberOf attribute found", status_code=400)
     
-    # role and classes
+    # role flags
     is_professor = False
     is_student = False
     sections = []
@@ -383,10 +383,33 @@ async def saml_acs(request: Request):
         request.session['role'] = 'unknown'
 
     #Log all saved information
-    logger.info(f"User '{nameid}' authenticated with role '{request.session['role']}' and sections: {sections}")
+    logger.info(f"User '{nameid}' authenticated with role '{request.session['role']}'")
 
-    # # UPSERT the user data
-    # conn = pool.getconn()
+    # Comma separate sections
+    cs_sections = ",".join(sections) if sections else None
+
+    # UPSERT the user data
+    if pool is None:
+        raise HTTPException(status_code=500, detail="DB not initialized")
+
+    conn = pool.getconn()
+    try:
+        conn.autocommit = True 
+        
+        with conn:
+            with conn.cursor() as cur:
+                cur.execute(SQL_UPSERT_USER, (
+                    nameid, 
+                    first_name, 
+                    last_name, 
+                    cs_sections if cs_sections else None
+                ))
+        conn.commit()
+        logger.info(f"Database entry created/updated for user '{nameid}' with name '{first_name} {last_name}' and sections: {cs_sections}")
+    
+    except Exception as e:
+        logger.error(f"Database error during SAML ACS processing for user '{nameid}': {e}")
+        return Response(content=f"Database error: {str(e)}", status_code=500)
 
     return RedirectResponse('/', status_code=302)
 
