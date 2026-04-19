@@ -329,11 +329,6 @@ async def saml_acs(request: Request):
     # parse the memberOf attribute for section info + student/professor
     mo = attrs.get('memberOf', [])
 
-    # log every attribute for debugging
-    logger.info(f"SAML Attributes for {nameid}:")
-    for key, value in attrs.items():
-        logger.info(f"  {key}: {value}")
-
     # ensure memberOf is populated
     if not mo:
         return Response(content="No memberOf attribute found", status_code=400)
@@ -389,7 +384,7 @@ async def saml_acs(request: Request):
     else:
         request.session['role'] = 'unknown'
 
-    logger.info(f"SAML Login successful for {nameid}.\nStudent: {user_data['is_student']}.\nProfessor: {user_data['is_professor']}.\nSections: {', '.join(user_data['sections'])}")
+    logger.info(f"SAML Login successful for {nameid}.\nStudent: {user_data['is_student']}.\nProfessor: {user_data['is_professor']}.\nSections: {user_data['sections']}")
 
     # # UPSERT the user data
     # conn = pool.getconn()
