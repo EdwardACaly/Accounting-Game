@@ -45,11 +45,26 @@ export class SpeedSelect extends Phaser.Scene {
       .setDepth(0);
 
     // Moving clouds
-    this.clouds = this.add.image(width / 2, height / 2 - 50, "home_clouds")
-      .setOrigin(0.5)
-      .setScale(0.5)
-      .setDepth(0);
+    this.clouds = [];
     this.cloudSpeed = 0.3;
+
+    const baseSpacing = 550;
+    const numClouds = Math.ceil(this.scale.width / baseSpacing) + 3;
+
+    for (let i = 0; i < numClouds; i++) {
+  	const xOffset = i * baseSpacing + Phaser.Math.Between(-80, 80);
+
+  	const cloud = this.add.image(
+    	    xOffset,
+    	    this.scale.height * 0.47 + Phaser.Math.Between(-40, 40),
+    	    "home_clouds"
+  	)
+    	    .setOrigin(0.5)
+    	    .setScale(Phaser.Math.FloatBetween(0.65, 0.85))
+    	    .setDepth(0);
+
+  	this.clouds.push(cloud);
+    }
 
     // --- Back Arrow ---
     const backContainer = this.add.container(90, 46).setDepth(5);
@@ -142,14 +157,23 @@ export class SpeedSelect extends Phaser.Scene {
     this._escKey.on("down", () => this.scene.start("MainMenuScene"));
   }
 
+  // cloud wrap logic
   update() {
-    if (this.clouds) {
-      this.clouds.x -= this.cloudSpeed;
-      if (this.clouds.x + this.clouds.displayWidth / 2 < 0)
-        this.clouds.x = this.scale.width + this.clouds.displayWidth / 2;
-      if (this.clouds.x - this.clouds.displayWidth / 2 > this.scale.width)
-        this.clouds.x = -this.clouds.displayWidth / 2;
-    }
+  	if (!this.clouds) return;
+
+  	const width = this.scale.width;
+
+  	this.clouds.forEach(cloud => {
+    	    cloud.x -= this.cloudSpeed;
+
+    	    if (cloud.x < -200) {
+      		const rightMost = Math.max(...this.clouds.map(c => c.x));
+
+      		cloud.x = rightMost + Phaser.Math.Between(350, 600);
+      		cloud.y = this.scale.height * 0.6 + Phaser.Math.Between(-40, 40);
+      		cloud.scale = Phaser.Math.FloatBetween(0.65, 0.85);
+    	    }
+  	});
   }
 
   _makeUIButton(x, y, label, onClick) {
