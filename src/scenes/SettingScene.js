@@ -98,6 +98,8 @@ export class SettingsScene extends Scene {
             color: "#dcc89f",
         }).setOrigin(0.5);
 
+	// DELETE LATER (keep for until new dashboards/login working)
+	/*
         // 3. Login Test Button (Center)
         createButton(panelX, panelY + 20, "Login Test", () => {
             this.scene.start("LoginScreen");
@@ -110,6 +112,28 @@ export class SettingsScene extends Scene {
         createButton(panelX - spacing, footerY, "Student", () => this.scene.start("MainMenuScene"));
         createButton(panelX, footerY, "Professor", () => this.scene.start("ProfessorDash"));
         createButton(panelX + spacing, footerY, "Admin", () => this.scene.start("AdminDash"));
+	*/
+
+	// 5. Logout Button
+	const footerY = panelY + panelHeight / 2 - 60;
+
+	createButton(panelX, footerY, "Logout", () => {
+    	    // remove logged in flag/status from user
+	    sessionStorage.removeItem('sso_completed');	
+
+    	    // MAYBE DELETE LATER: Clear local user data from fake login system (covering all bases)
+    	    localStorage.removeItem("game_username");
+    	    localStorage.removeItem("game_firstName");
+    	    localStorage.removeItem("game_lastName");
+    	    localStorage.removeItem("game_section");
+
+    	    this.game.userSection = null;
+    	    this.game.userUsername = null;
+
+	    // logout redirect
+	    window.location.href = "https://accounting-game.cse.eng.auburn.edu/saml/logout";
+
+	});
 
         // Keyboard Shortcuts
         this._escKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
