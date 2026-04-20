@@ -186,6 +186,7 @@ export class Leaderboard extends Scene {
         console.log("Dashboard target determined:", dashTarget);
         // if admin/prof, draw arrow to correct dashboard
         if (dashTarget) {
+            console.log("Drawing dashboard button for role:", userRole);
             const width = 95;
             const height = 40;
             
@@ -199,12 +200,18 @@ export class Leaderboard extends Scene {
                 strokeThickness: 2,
             }).setOrigin(0.5);
 
-            const dashButton = this.add.container(this.scale.width - 65, this.scale.height / 2, [dashRect, dashArrow]);
+            const dashButton = this.add.container(0, 0, [dashRect, dashArrow]);
 
             console.log("dashButton created", dashButton);
             dashButton.setDepth(9999);
             dashButton.setAlpha(1);
             dashButton.setVisible(true);
+
+            this.leaderboardContainer.add(dashButton);
+
+            // position x and y
+            dashButton.x = this.scale.width / 2 - 65;
+            dashButton.y = -this.scale.height / 2;
 
             dashRect.setInteractive({ useHandCursor: true });
             
@@ -227,8 +234,6 @@ export class Leaderboard extends Scene {
                 });
                 tween.once("complete", () => this.scene.start(dashTarget));
             });
-
-            this.leaderboardContainer.add(dashButton);
         }
         
 
