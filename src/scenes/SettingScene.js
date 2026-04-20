@@ -11,12 +11,32 @@ export class SettingsScene extends Scene {
 
     async create() {
         // --- Background ---
-        this.add.image(0, 0, "home_bg")
-            .setOrigin(0, 0)
-            .setDisplaySize(this.scale.width, this.scale.height);
-        this.add.image(0, 0, "home_fg")
-            .setOrigin(0, 0)
-            .setDisplaySize(this.scale.width, this.scale.height);
+        this.add.image(this.scale.width / 2, this.scale.height / 2, "home_bg")
+            .setOrigin(0.5)
+            .setDisplaySize(this.scale.width, this.scale.height)
+            .setDepth(0);
+
+	// Moving clouds
+        this.clouds = [];
+        this.cloudSpeed = 0.3;
+
+        const baseSpacing = 550;
+        const numClouds = Math.ceil(this.scale.width / baseSpacing) + 3;
+
+        for (let i = 0; i < numClouds; i++) {
+            const xOffset = i * baseSpacing + Phaser.Math.Between(-80, 80);
+
+            const cloud = this.add.image(
+                xOffset,
+                this.scale.height * 0.5 + Phaser.Math.Between(-40, 40),
+                "home_clouds"
+            )
+                .setOrigin(0.5)
+                .setScale(Phaser.Math.FloatBetween(0.65, 0.85))
+                .setDepth(0);
+
+            this.clouds.push(cloud);
+        }	
         
         this.volume = parseFloat(localStorage.getItem("volume"));
         if (isNaN(this.volume)) this.volume = DEFAULT_SETTINGS.volume;
@@ -138,6 +158,25 @@ export class SettingsScene extends Scene {
         // Keyboard Shortcuts
         this._escKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
         this._escKey.on("down", () => this.scene.start("MainMenuScene"));
+    }
+
+    // cloud wrap logic
+    update() {
+        if (!this.clouds) return;
+
+        const width = this.scale.width;
+
+        this.clouds.forEach(cloud => {
+            cloud.x -= this.cloudSpeed;
+
+            if (cloud.x < -200) {
+                const rightMost = Math.max(...this.clouds.map(c => c.x));
+
+                cloud.x = rightMost + Phaser.Math.Between(350, 600);
+                cloud.y = this.scale.height * 0.6 + Phaser.Math.Between(-40, 40);
+                cloud.scale = Phaser.Math.FloatBetween(0.65, 0.85);
+            }
+        });
     }
 
     createVolumeSlider(x, y) {
