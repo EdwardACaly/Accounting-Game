@@ -57,7 +57,7 @@ export default class ProfessorDash extends Scene {
             // Use the key you set in the parser, e.g., 'game_section'
 
             const response = await fetch("https://accounting-game.cse.eng.auburn.edu/api/fetch-user");
-            let sections = await response.json().then(data => data.usersection);
+            let sections = await response.json().then(data => data.sections);
 
 
             //const sectionString = localStorage.getItem('game_section') || "001"; 
