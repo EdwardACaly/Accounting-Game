@@ -176,7 +176,7 @@ export class Leaderboard extends Scene {
         const response = await fetch("/fetch-user");
         const userRole = await response.json().then(data => data.role);
         // check type of user (admin, professor, other)        
-        const dashTarget = userRole === "admin" ? "AdminDash" :
+        let dashTarget = userRole === "admin" ? "AdminDash" :
                            userRole === "professor" ? "ProfessorDash" :
                            null;
 
