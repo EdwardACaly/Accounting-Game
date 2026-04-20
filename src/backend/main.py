@@ -22,6 +22,10 @@ import io
 import csv
 from fastapi.responses import StreamingResponse
 
+# reading override roles from excel file
+import pandas as pd
+from pandas import read_excel
+
 import logging
 
 logging.basicConfig(
@@ -372,8 +376,37 @@ async def saml_acs(request: Request):
     if not sections:
         sections = None
 
+    # Comma separate sections
+    cs_sections = ",".join(sections) if sections else None
+
     # save role
-    if is_professor and is_student:
+
+    # handle role override 
+    # edit in public/assets/role_override.xlsx
+    # Column A: Admin Permissions | Column C: Professor Permissions | Column D: Allowed Professor Section Numbers
+    df = read_excel('role_override.xlsx', usecols=[0, 2, 3]) 
+
+    # Check for Admin override
+    if nameid in df.iloc[:, 0].astype(str).str.tolist():
+        request.session['role'] = 'admin'
+    
+    # Check for Professor override
+    elif nameid in df.iloc[:, 2].astype(str).str.tolist():
+        request.session['role'] = 'professor'
+
+        # Find row where Column C matches nameid,
+        # get the corresponding value from Column D
+        sections_override = df.loc[
+            df.iloc[:, 2].astype(str).str == nameid,
+            df.columns[3]
+        ].iloc[0]
+
+        # Only override if it isn't empty
+        if pd.notna(sections_override):
+            cs_sections = sections_override.strip()
+            logger.info(f"Professor '{nameid}' has section override: {cs_sections}")
+
+    elif is_professor and is_student:
         request.session['role'] = 'professor_student'
     elif is_professor:
         request.session['role'] = 'professor'
@@ -384,9 +417,6 @@ async def saml_acs(request: Request):
 
     #Log all saved information
     logger.info(f"User '{nameid}' authenticated with role '{request.session['role']}'")
-
-    # Comma separate sections
-    cs_sections = ",".join(sections) if sections else None
 
     # UPSERT the user data
     if pool is None:
