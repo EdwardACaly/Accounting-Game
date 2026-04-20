@@ -200,6 +200,12 @@ export class Leaderboard extends Scene {
             }).setOrigin(0.5);
 
             const dashButton = this.add.container(this.scale.width - 65, this.scale.height / 2, [dashRect, dashArrow]);
+
+            console.log("dashButton created", dashButton);
+            dashButton.setDepth(9999);
+            dashButton.setAlpha(1);
+            dashButton.setVisible(true);
+
             dashRect.setInteractive({ useHandCursor: true });
             
             dashRect.on("pointerover", () => {
