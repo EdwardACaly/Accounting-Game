@@ -180,8 +180,8 @@ export class SettingsScene extends Scene {
     }
 
     createVolumeSlider(x, y) {
-        const slider = this.add.dom(x, y).createFromHTML(`
-            <input type="range" min="0" max="100" value="${this.volume * 100}" style="width: 220px;">
+        const slider = this.add.dom(x - 25, y + 15).createFromHTML(`
+            <input type="range" min="0" max="100" value="${this.volume * 100}" style="width: 220px; accent-color: #dcc89f;">
         `);
         slider.setOrigin(0, 0);
         slider.addListener("input");
