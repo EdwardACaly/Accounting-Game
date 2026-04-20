@@ -362,6 +362,7 @@ export class Leaderboard extends Scene {
         
             if (this.scoreScope === "section") {
             if (!userSection || userSection === "default" || userSection === null || userSection === "unknown") {
+                console.log("User section is invalid:", userSection);
                 this.tableGroup.removeAll(true);
                 const msg = this.add.text(0, 20, 
                     "Please enroll in ACCT 2110 or ACCT 5110\nto see section leaderboard", {
