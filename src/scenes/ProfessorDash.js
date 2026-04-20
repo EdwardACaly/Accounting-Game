@@ -100,11 +100,17 @@ export default class ProfessorDash extends Scene {
               this.downloadBtn.setVisible(false);
               this.currentSection = null;
           });
-        this.statsContainer.add(closeBtn);
 
         try {
             const response = await fetch(`https://accounting-game.cse.eng.auburn.edu/api/stats/section/${sectionId}`);
             const data = await response.json();
+
+            const timeLookup = {};
+            if (data.total_time_records) {
+                data.total_time_records.forEach(record => {
+                    timeLookup[record.user] = record.seconds;
+                });
+            }
 
             const title = this.add.text(0, -30, `Viewing Section: ${sectionId}`, {
                 fontSize: "24px", color: "#dcc89f", fontFamily: '"Jersey 10", sans-serif'
@@ -114,11 +120,13 @@ export default class ProfessorDash extends Scene {
             let yOffset = 20;
             data.student_breakdown.forEach((s) => {
                 const gameName = GAME_NAMES[s.game] || s.game;
+                const t = timeLookup[s.user] || 0;
                 const row = `${s.name.padEnd(15)} | ${gameName.padEnd(12)} | Avg: ${s.avg.toFixed(0).padStart(4)} | T: ${String(s.top).padStart(4)} | B: ${String(s.bottom).padStart(4)}`;
                 this.statsContainer.add(this.add.text(0, yOffset, row, { fontFamily: "Courier", fontSize: "15px", color: "#ffffff" }).setOrigin(0.5));
                 yOffset += 30;
             });
 
+            
             this.setupScrolling(yOffset);
         } catch (e) {
             console.error("Fetch failed", e);

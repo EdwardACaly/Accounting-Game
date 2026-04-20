@@ -139,6 +139,13 @@ export default class AdminDash extends Scene {
             const response = await fetch(`https://accounting-game.cse.eng.auburn.edu${endpoint}`);
             const data = await response.json();
 
+            const timeLookup = {};
+            if (data.total_time_records) {
+                data.total_time_records.forEach(record => {
+                    timeLookup[record.user] = record.seconds;
+                });
+            }
+
             let yOffset = 0;
             const rowSpacing = 30;
 
@@ -161,6 +168,7 @@ export default class AdminDash extends Scene {
                 data.forEach(s => {
 
                     const gameName = GAME_NAMES[s.game] || s.game;
+                    const t = timeLookup[s.user] || 0;
                     const row = `S${s.section} | ${s.name.padEnd(12)} | ${gameName.padEnd(12)} | Avg: ${s.avg.toFixed(0)} | T: ${s.top} | Time Played: ${String(s.time_played).padStart(4)}s`;
                     this.statsContainer.add(this.add.text(0, yOffset, row, { fontFamily: "Courier", fontSize: "14px", color: "#ffffff" }).setOrigin(0.5));
 
@@ -171,6 +179,7 @@ export default class AdminDash extends Scene {
                 data.student_breakdown.forEach(s => {
 
                     const gameName = GAME_NAMES[s.game] || s.game;
+                    const t = timeLookup[s.user] || 0;
                     const row = `${s.name.padEnd(15)} | ${gameName.padEnd(8)} | Avg: ${s.avg.toFixed(0)} | T: ${s.top} | B: ${s.bottom} | Time Played: ${String(s.time_played).padStart(4)}s`;
 
                     this.statsContainer.add(this.add.text(0, yOffset, row, { fontFamily: "Courier", fontSize: "15px", color: "#ffffff" }).setOrigin(0.5));
@@ -191,13 +200,13 @@ export default class AdminDash extends Scene {
     }
 
     setupScrolling(contentHeight) {
-        const maskVisibleHeight = 300; // Increased height
+        const maskVisibleHeight = 350; // Increased height
         const maskY = 150; // Started higher to include the title
         const startY = 220;
 
         const maskShape = this.make.graphics();
         // Mask covers area from Y=150 to Y=450
-        maskShape.fillRect(this.scale.width / 2 - 450, maskY, 900, maskVisibleHeight);
+        maskShape.fillRect(this.scale.width / 2 - 500, maskY, 1000, maskVisibleHeight);
         this.statsContainer.setMask(maskShape.createGeometryMask());
 
         this.input.on('wheel', (pointer, gameObjects, deltaX, deltaY, deltaZ) => {
