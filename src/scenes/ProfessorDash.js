@@ -10,12 +10,8 @@ export default class ProfessorDash extends Scene {
     }
 
     create() {
-<<<<<<< HEAD
         // Background - Keeping your 0x1a1a1a
         this.add.rectangle(0, 0, this.scale.width, this.scale.height, 0x1a1a1a).setOrigin(0);
-=======
-        this.add.rectangle(0, 0, this.scale.width, this.scale.height, 0x550000).setOrigin(0);
->>>>>>> main
 
         this.title = this.add.text(this.scale.width / 2, 50, "Professor Dashboard", {
             fontSize: "42px", fontFamily: '"Jersey 10", sans-serif', color: "#dcc89f"
@@ -61,7 +57,6 @@ export default class ProfessorDash extends Scene {
             // Use the key you set in the parser, e.g., 'game_section'
 
             const response = await fetch("/fetch-user");
-            const userId = await response.json().then(data => data.userid);
             let sections = await response.json().then(data => data.usersection);
 
 
@@ -121,31 +116,9 @@ export default class ProfessorDash extends Scene {
             let yOffset = 20;
             data.student_breakdown.forEach((s) => {
                 const gameName = GAME_NAMES[s.game] || s.game;
-<<<<<<< HEAD
                 const row = `${s.name.padEnd(15)} | ${gameName.padEnd(12)} | Avg: ${s.avg.toFixed(0).padStart(4)} | T: ${String(s.top).padStart(4)} | B: ${String(s.bottom).padStart(4)}`;
                 this.statsContainer.add(this.add.text(0, yOffset, row, { fontFamily: "Courier", fontSize: "15px", color: "#ffffff" }).setOrigin(0.5));
                 yOffset += 30;
-=======
-                const row = `${s.name.padEnd(15)} | ${gameName.padEnd(12)} | Avg: ${s.avg.toFixed(0).padStart(4)} | T: ${String(s.top).padStart(4)} | B: ${String(s.bottom).padStart(4)} | Time: ${String(s.time_played).padStart(4)}s`;
-    
-                let txt = this.add.text(0, yOffset, row, {
-                    fontSize: "14px", // Slightly smaller to fit the extra data
-                    fontFamily: "Courier", 
-                    color: "#ffffff"
-                }).setOrigin(0.5);
-    
-            this.statsContainer.add(txt);
-            yOffset += 30;
-        });
-
-            // --- 3. SCROLLING & MASK ---
-            this.setupScrolling(yOffset);
-
-            // Add Download Button
-            if (this.downloadBtn) this.downloadBtn.destroy();
-            this.downloadBtn = this.createTabButton(this.scale.width / 2, 450, "Download CSV", () => {
-                window.open(`https://accounting-game.cse.eng.auburn.edu/api/stats/section/${sectionId}/csv`, "_blank");
->>>>>>> main
             });
 
             this.setupScrolling(yOffset);

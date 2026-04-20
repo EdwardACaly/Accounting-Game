@@ -214,11 +214,7 @@ export default class AdminDash extends Scene {
 		fontSize: "18px", fontFamily: '"Jersey 10", sans-serif', color: "#dcc89f", backgroundColor: "#7f1a02", padding: { x: 8, y: 4 }
         }).setOrigin(0.5).setInteractive({ useHandCursor: true }).on("pointerdown", callback);
     }
-<<<<<<< HEAD
-    
-=======
   
->>>>>>> main
     showClearConfirm() {
     const overlay = this.add.rectangle(
         this.scale.width / 2, this.scale.height / 2,
