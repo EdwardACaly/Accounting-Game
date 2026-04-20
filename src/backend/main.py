@@ -22,6 +22,10 @@ import io
 import csv
 from fastapi.responses import StreamingResponse
 
+# reading override roles from excel file
+import pandas as pd
+from pandas import read_excel
+
 import logging
 
 logging.basicConfig(
@@ -319,13 +323,15 @@ async def saml_acs(request: Request):
     if not auth.is_authenticated():
         return Response(content="Not authenticated", status_code=403)
     # grab student info
-    nameid = auth.get_nameid()
+    email = auth.get_nameid()
+    userid = email.split('@')[0]
+
     attrs = auth.get_attributes()
     first_name = attrs.get("givenName", [""])[0]
     last_name = attrs.get("sn", [""])[0]
 
-    # save nameid for frontend as database key
-    request.session['nameid'] = nameid
+    # save userid for frontend as database key
+    request.session['userid'] = userid
 
     # ===PARSING===
     # parse the memberOf attribute for section info + student/professor
@@ -372,8 +378,38 @@ async def saml_acs(request: Request):
     if not sections:
         sections = None
 
+    # Comma separate sections
+    cs_sections = ",".join(sections) if sections else None
+
     # save role
-    if is_professor and is_student:
+
+    # handle role override 
+    # edit in public/assets/role_override.xlsx
+    # Column A: Admin Permissions | Column C: Professor Permissions | Column D: Allowed Professor Section Numbers
+    df = read_excel('../../public/assets/role_override.xlsx', usecols=[0, 2, 3]) 
+
+    logger.info(f"Checking professor overrides for user '{userid}' against the following list: {df.iloc[:, 2].astype(str).tolist()}")
+    # Check for Admin override
+    if userid in df.iloc[:, 0].astype(str).tolist():
+        request.session['role'] = 'admin'
+    
+    # Check for Professor override
+    elif userid in df.iloc[:, 2].astype(str).tolist():
+        request.session['role'] = 'professor'
+
+        # Find row where Column C matches userid,
+        # get the corresponding value from Column D
+        sections_override = df.loc[
+            df.iloc[:, 2].astype(str) == userid,
+            df.columns[3]
+        ].iloc[0]
+
+        # Only override if it isn't empty
+        if pd.notna(sections_override):
+            cs_sections = sections_override.strip()
+            logger.info(f"Professor '{userid}' has section override: {cs_sections}")
+
+    elif is_professor and is_student:
         request.session['role'] = 'professor_student'
     elif is_professor:
         request.session['role'] = 'professor'
@@ -381,12 +417,12 @@ async def saml_acs(request: Request):
         request.session['role'] = 'student'
     else:
         request.session['role'] = 'unknown'
+    
+    # save sections
+    request.session['sections'] = cs_sections
 
     #Log all saved information
-    logger.info(f"User '{nameid}' authenticated with role '{request.session['role']}'")
-
-    # Comma separate sections
-    cs_sections = ",".join(sections) if sections else None
+    logger.info(f"User '{userid}' authenticated with role '{request.session['role']}'")
 
     # UPSERT the user data
     if pool is None:
@@ -399,16 +435,16 @@ async def saml_acs(request: Request):
         with conn:
             with conn.cursor() as cur:
                 cur.execute(SQL_UPSERT_USER, (
-                    nameid, 
+                    userid, 
                     first_name, 
                     last_name, 
                     cs_sections if cs_sections else None
                 ))
         conn.commit()
-        logger.info(f"Database entry created/updated for user '{nameid}' with name '{first_name} {last_name}' and sections: {cs_sections}")
+        logger.info(f"Database entry created/updated for user '{userid}' with name '{first_name} {last_name}' and sections: {cs_sections}")
     
     except Exception as e:
-        logger.error(f"Database error during SAML ACS processing for user '{nameid}': {e}")
+        logger.error(f"Database error during SAML ACS processing for user '{userid}': {e}")
         return Response(content=f"Database error: {str(e)}", status_code=500)
 
     return RedirectResponse('/', status_code=302)
@@ -417,8 +453,9 @@ async def saml_acs(request: Request):
 @app.get('/fetch-user')
 async def fetch_user(request: Request):
     return {
-        "nameid": request.session.get('nameid'),
-        "role": request.session.get('role')
+        "userid": request.session.get('userid'),
+        "role": request.session.get('role'),
+        "sections": request.session.get('sections')
     }
 
 # handles log out requests/responses

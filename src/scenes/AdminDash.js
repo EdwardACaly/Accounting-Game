@@ -10,7 +10,7 @@ export default class AdminDash extends Scene {
     }
 
     create() {
-        this.add.rectangle(0, 0, this.scale.width, this.scale.height, 0x0a1a2a).setOrigin(0);
+        this.add.rectangle(0, 0, this.scale.width, this.scale.height, 0x550000).setOrigin(0);
 
         this.add.text(this.scale.width / 2, 40, "ADMIN", {
             fontSize: "48px", fontFamily: '"Jersey 10", sans-serif', color: "#dcc89f"
@@ -159,16 +159,20 @@ export default class AdminDash extends Scene {
             } else if (type === "all") {
                 // Fix: 'all-students' returns a direct list [], not a dictionary
                 data.forEach(s => {
+
                     const gameName = GAME_NAMES[s.game] || s.game;
-                    const row = `S${s.section} | ${s.name.padEnd(12)} | ${gameName.padEnd(12)} | Avg: ${s.avg.toFixed(0)} | T: ${s.top}`;
-                    this.statsContainer.add(this.add.text(0, yOffset, row, { fontFamily: "Courier", fontSize: "14px", color: "#00ff00" }).setOrigin(0.5));
+                    const row = `S${s.section} | ${s.name.padEnd(12)} | ${gameName.padEnd(12)} | Avg: ${s.avg.toFixed(0)} | T: ${s.top} | Time Played: ${String(s.time_played).padStart(4)}s`;
+                    this.statsContainer.add(this.add.text(0, yOffset, row, { fontFamily: "Courier", fontSize: "14px", color: "#ffffff" }).setOrigin(0.5));
+
                     yOffset += rowSpacing;
                 });
             } else {
                 // Section view uses .student_breakdown
                 data.student_breakdown.forEach(s => {
+
                     const gameName = GAME_NAMES[s.game] || s.game;
-                    const row = `${s.name.padEnd(15)} | ${gameName.padEnd(8)} | Avg: ${s.avg.toFixed(0)} | T: ${s.top} | B: ${s.bottom}`;
+                    const row = `${s.name.padEnd(15)} | ${gameName.padEnd(8)} | Avg: ${s.avg.toFixed(0)} | T: ${s.top} | B: ${s.bottom} | Time Played: ${String(s.time_played).padStart(4)}s`;
+
                     this.statsContainer.add(this.add.text(0, yOffset, row, { fontFamily: "Courier", fontSize: "15px", color: "#ffffff" }).setOrigin(0.5));
                     yOffset += rowSpacing;
                 });
@@ -207,10 +211,14 @@ export default class AdminDash extends Scene {
 
     createSmallBtn(x, y, label, callback) {
         return this.add.text(x, y, label, {
-            fontSize: "18px", fontFamily: '"Jersey 10", sans-serif', backgroundColor: "#333", padding: 8, color: "#dcc89f"
+		fontSize: "18px", fontFamily: '"Jersey 10", sans-serif', color: "#dcc89f", backgroundColor: "#7f1a02", padding: { x: 8, y: 4 }
         }).setOrigin(0.5).setInteractive({ useHandCursor: true }).on("pointerdown", callback);
     }
+<<<<<<< HEAD
     
+=======
+  
+>>>>>>> main
     showClearConfirm() {
     const overlay = this.add.rectangle(
         this.scale.width / 2, this.scale.height / 2,
