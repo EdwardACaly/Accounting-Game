@@ -679,7 +679,7 @@ def get_all_students_admin():
         pool.putconn(conn)
 
 
-@app.get("/api/stats/admin/all-students/csv")
+@app.get("/stats/admin/all-students/csv")
 def get_all_students_csv():
     conn = pool.getconn()
     try:
