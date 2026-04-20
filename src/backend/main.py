@@ -396,6 +396,8 @@ async def saml_acs(request: Request):
     elif userid in df.iloc[:, 1].astype(str).tolist():
         request.session['role'] = 'professor'
 
+        # Display the whole 3rd column for debugging
+        logger.info(f"3rd column values for debugging: {df.iloc[:, 2].tolist()}")
         # Find row where Column C matches userid,
         # get the corresponding value from Column D
         sections_override = df.loc[
