@@ -356,7 +356,7 @@ export class Leaderboard extends Scene {
 
             const userResponse = await fetch(`${apiBase}/fetch-user`);
             const userData = await userResponse.json();
-            const userSection = userData.section;
+            const userSection = userData.sections;
 
             let url = `${apiBase}/leaderboard/${mode}`;
         
