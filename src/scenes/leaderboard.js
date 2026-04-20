@@ -180,9 +180,6 @@ export class Leaderboard extends Scene {
                            userRole === "professor" ? "ProfessorDash" :
                            null;
 
-        // MANUAL ENTRY BEFORE LOGIC (can set dashTarget to one of 3 values above)
-        dashTarget = null
-
         // if admin/prof, draw arrow to correct dashboard
         if (dashTarget) {
             const width = 95;
