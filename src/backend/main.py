@@ -323,7 +323,9 @@ async def saml_acs(request: Request):
     if not auth.is_authenticated():
         return Response(content="Not authenticated", status_code=403)
     # grab student info
-    nameid = auth.get_nameid()
+    email = auth.get_nameid()
+    nameid = email.split('@')[0]
+
     attrs = auth.get_attributes()
     first_name = attrs.get("givenName", [""])[0]
     last_name = attrs.get("sn", [""])[0]
