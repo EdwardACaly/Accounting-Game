@@ -349,18 +349,35 @@ export class Leaderboard extends Scene {
         }
 
         try {
-            const userSection = this.game.userSection; 
-
             const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
             const apiBase = isLocal 
                 ? "http://localhost:8000" 
                 : "https://accounting-game.cse.eng.auburn.edu/api";
 
+            const userResponse = await fetch(`${apiBase}/fetch-user/`);
+            const userData = await userResponse.json();
+            const userSection = userData.section;
+
             let url = `${apiBase}/leaderboard/${mode}`;
         
-            if (this.scoreScope === "section" && userSection) {
-                url += `?section=${userSection}`;
+            if (this.scoreScope === "section") {
+            if (!userSection || userSection === "default" || userSection === null || userSection === "unknown") {
+                this.tableGroup.removeAll(true);
+                const msg = this.add.text(0, 20, 
+                    "Please enroll in ACCT 2110 or ACCT 5110\nto see section leaderboard", {
+                        fontSize: "22px",
+                        fill: "#dcc89f",
+                        fontFamily: '"Jersey 10", sans-serif',
+                        align: "center",
+                    }).setOrigin(0.5, 0);
+                this.tableGroup.add(msg);
+                this.contentHeight = 60;
+                this.scrollY = 0;
+             this.updateScroll(this.maskVisibleHeight, this.relMaskTopY);
+                return;
             }
+                url += `?section=${userSection}`;
+        }
 
             const res = await fetch(url);
             if (!res.ok) throw new Error(`Server returned ${res.status}`);
