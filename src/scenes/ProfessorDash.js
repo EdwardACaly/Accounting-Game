@@ -59,7 +59,7 @@ export default class ProfessorDash extends Scene {
             const response = await fetch("https://accounting-game.cse.eng.auburn.edu/api/fetch-user");
             const sectionString = await response.json().then(data => data.sections);
 
-            sections = sectionString.split(',');
+            let sections = sectionString.split(',');
 
             // 2. Build items (Logic remains the same)
             sections.forEach((id, i) => {
