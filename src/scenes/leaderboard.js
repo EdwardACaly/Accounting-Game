@@ -217,6 +217,8 @@ export class Leaderboard extends Scene {
                 });
                 tween.once("complete", () => this.scene.start(dashTarget));
             });
+
+            this.leaderboardContainer.add(dashButton);
         }
         
 
