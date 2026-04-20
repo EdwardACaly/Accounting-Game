@@ -326,14 +326,17 @@ export class Leaderboard extends Scene {
     }
 
     async loadLeaderboard(mode) {
-        this.tableGroup.removeAll(true);
+        // --- FIX 1: Safety check before calling removeAll ---
+        if (this.tableGroup) {
+            this.tableGroup.removeAll(true);
+        } else {
+            // If it doesn't exist, create it so the rest of the function doesn't fail
+            this.tableGroup = this.add.container(0, 0); 
+        }
+
         try {
-            // Get user section from global game state (set during login)
             const userSection = this.game.userSection; 
 
-            //let url = `http://127.0.0.1:8000/leaderboard/${mode}`;
-
-            // --- Environment Aware Routing ---
             const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
             const apiBase = isLocal 
                 ? "http://localhost:8000" 
@@ -349,6 +352,7 @@ export class Leaderboard extends Scene {
             if (!res.ok) throw new Error(`Server returned ${res.status}`);
 
             const data = await res.json();
+
             data.sort((a, b) => b.score - a.score);
 
             const rankX = -200, nameX = -30, scoreX = 170;
@@ -379,6 +383,7 @@ export class Leaderboard extends Scene {
             this.contentHeight = y;
             this.scrollY = 0;
             this.updateScroll(this.maskVisibleHeight, this.relMaskTopY);
+
         } catch (err) {
             console.error(err);
             const msg = this.add.text(0, 20, "Error loading leaderboard", {
@@ -386,10 +391,13 @@ export class Leaderboard extends Scene {
                 fill: "#ff4444",
                 fontFamily: '"Jersey 10", sans-serif',
             }).setOrigin(0.5, 0);
+            
             this.tableGroup.add(msg);
             this.contentHeight = 40;
             this.scrollY = 0;
-            this.updateScroll(maskVisibleHeight, maskTopY);
+            
+            // --- FIX 2: Use the 'this.' prefix for these variables ---
+            this.updateScroll(this.maskVisibleHeight, this.relMaskTopY);
         }
     }
 }

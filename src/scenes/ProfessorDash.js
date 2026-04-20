@@ -46,7 +46,7 @@ export default class ProfessorDash extends Scene {
         this.dropdownOptions = this.add.container(x, y + 40).setVisible(false).setDepth(100);
     }
 
-    toggleDropdown() {
+    async toggleDropdown() {
         this.isDropdownOpen = !this.isDropdownOpen;
         this.dropdownOptions.setVisible(this.isDropdownOpen);
 
