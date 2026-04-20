@@ -173,13 +173,17 @@ export class Leaderboard extends Scene {
 
         // Dashboard Arrow
 
-        const response = await fetch("/fetch-user");
+        const response = await fetch("https://accounting-game.cse.eng.auburn.edu/fetch-user");
         const userRole = await response.json().then(data => data.role);
+
+        console.log("User role fetched from server:", userRole);
+
         // check type of user (admin, professor, other)        
         const dashTarget = userRole === "admin" ? "AdminDash" :
                            userRole === "professor" ? "ProfessorDash" :
                            null;
 
+        console.log("Dashboard target determined:", dashTarget);
         // if admin/prof, draw arrow to correct dashboard
         if (dashTarget) {
             const width = 95;
