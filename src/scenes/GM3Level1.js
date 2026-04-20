@@ -19,14 +19,10 @@ export default class GM3Level1 extends BaseGM3Scene {
   }
 
   //preload version for local 
-
-
-  preload() {
-    this.load.binary("gm3_easy_xlsx", "/assets/UpdatedAccountingElements_v2.26.xlsx");
-    this.load.image("gm3_level1_bg", "/assets/level1.jpg");
-  }
-
-
+  //preload() {
+  //  this.load.binary("gm3_easy_xlsx", "/assets/UpdatedAccountingElements_v2.26.xlsx");
+  //  this.load.image("gm3_level1_bg", "/assets/level1.jpg");
+  //}
 
   onTimeUp() { this._finishToGameOver("timeup"); }
 
@@ -35,21 +31,22 @@ export default class GM3Level1 extends BaseGM3Scene {
     
     // unbind
     this.input.keyboard.off('keydown', this._handleKeydown, this); 
-    
+    const startTime = this.registry.get('levelStartTime') || Date.now();
+    const timeSpentPlaying = Math.floor((Date.now() - startTime) / 1000);
     this.scene.start("GameOverScene", { 
         score: this.score, 
         mode: "GM3-Level1", 
         reason,
         timeSpentPlaying: Math.floor((this.time.now - this.startTime) / 1000),
     });
-}
+  }
 
   buildLevel() {
     // -------------------------------------------------------------------------
     // 1. Audio and Excel File Loading
     // -------------------------------------------------------------------------
     this.sound.play("game3", { loop: true, volume: this.game.sfxVolume ?? 1 });
-    const buf = this.cache.binary.get("gm3_easy_xlsx");
+    const buf = this.cache.binary.get("excelData");
     if (!buf) return this._failAndBack("Excel file not found.");
 
     const wb = XLSX.read(buf, { type: "array", cellStyles: true, cellHTML: true });
@@ -210,7 +207,7 @@ export default class GM3Level1 extends BaseGM3Scene {
 
     // Initialize first question
     this.currentIndex = 0;
-    this._showCurrent(false);
+    this._showCurrent(true);
 
     // Show the "Click to Start" overlay
     this._showPreStartCard();
@@ -352,7 +349,9 @@ export default class GM3Level1 extends BaseGM3Scene {
     btnRect.on("pointerover", hoverIn);
     btnRect.on("pointerout", hoverOut);
     btnRect.on("pointerdown", startNow);
-    this.input.keyboard?.once?.("keydown-ENTER", startNow);
+    this.input.keyboard?.once?.("keydown-ENTER", () => {
+      if (btnRect && btnRect.active) startNow();
+    });
 
     this.tweens.add({ targets: card, alpha: 1, duration: 220, ease: "Quad.easeOut" });
   }
@@ -418,6 +417,7 @@ export default class GM3Level1 extends BaseGM3Scene {
 
       this._updateTimerUI();
       this._updateScoreUI();
+      this._setGameplayUIVisible(true);
       this.input.enabled = true;
       
       //trigger the flag to allow keyboard input once the game actually begins
