@@ -4,6 +4,9 @@
 
 # 1. Student-specific stats within a section
 # Shows: Name, Username, Avg Score, Top Score, Bottom Score per Game
+from multiprocessing import pool
+
+
 SQL_PROF_STUDENT_STATS = """
 SELECT 
     p.first_name, 
@@ -73,3 +76,13 @@ FROM public.game_analytics g
 JOIN public.player_profiles p ON g.username = p.username
 ORDER BY g.game, g.score DESC;
 """
+
+
+#find all the unique sections in the database
+@app.get("/api/stats/sections/list")
+async def get_sections_list():
+    with pool.getconn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT DISTINCT section FROM player_profiles WHERE section IS NOT NULL ORDER BY section ASC")
+            sections = [row[0] for row in cur.fetchall()]
+    return sections

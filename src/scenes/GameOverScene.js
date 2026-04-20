@@ -160,7 +160,9 @@ export class GameOverScene extends Scene {
       onUpdate: (tw) => scoreText.setText(String(Math.floor(tw.getValue()))),
     });
 
-    const savedUsername = localStorage.getItem("game_username");
+    //const savedUsername = localStorage.getItem("game_username");
+    const response = await fetch("https://accounting-game.cse.eng.auburn.edu/api/fetch-user");
+    const savedUsername = await response.json().then(data => data.userid);
 
     // block manual submission if tutorial
     if (this.isTutorial) {

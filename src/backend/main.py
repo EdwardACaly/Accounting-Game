@@ -441,7 +441,7 @@ async def saml_acs(request: Request):
                 ))
         conn.commit()
         logger.info(f"Database entry created/updated for user '{userid}' with name '{first_name} {last_name}' and sections: {cs_sections}")
-    
+
     except Exception as e:
         logger.error(f"Database error during SAML ACS processing for user '{userid}': {e}")
         return Response(content=f"Database error: {str(e)}", status_code=500)
@@ -449,7 +449,7 @@ async def saml_acs(request: Request):
     return RedirectResponse('/', status_code=302)
 
 # fetch userid and role for frontend
-@app.get('/fetch-user')
+@app.get('/api/fetch-user')
 async def fetch_user(request: Request):
     return {
         "userid": request.session.get('userid'),
@@ -560,6 +560,20 @@ def get_section_report(section_id: str):
                 ]
             }
     finally:
+        pool.putconn(conn)
+
+#get all the unique sections for the dropdown filter 
+@app.get("/api/stats/sections/list")
+async def get_sections_list():
+    conn = pool.getconn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT DISTINCT section FROM player_profiles WHERE section IS NOT NULL ORDER BY section ASC")
+            sections = [row[0] for row in cur.fetchall()]
+        return sections
+    finally:
+        # This ensures the connection goes back to the pool 
+        # even if the query fails.
         pool.putconn(conn)
 
 # admin view 
