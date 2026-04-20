@@ -354,7 +354,7 @@ export class Leaderboard extends Scene {
                 ? "http://localhost:8000" 
                 : "https://accounting-game.cse.eng.auburn.edu/api";
 
-            const userResponse = await fetch(`${apiBase}/fetch-user/`);
+            const userResponse = await fetch(`${apiBase}/fetch-user`);
             const userData = await userResponse.json();
             const userSection = userData.section;
 
