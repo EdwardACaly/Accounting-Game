@@ -121,7 +121,7 @@ export default class ProfessorDash extends Scene {
             data.student_breakdown.forEach((s) => {
                 const gameName = GAME_NAMES[s.game] || s.game;
                 const t = timeLookup[s.user] || 0;
-                const row = `${s.name.padEnd(15)} | ${gameName.padEnd(12)} | Avg: ${s.avg.toFixed(0).padStart(4)} | T: ${String(s.top).padStart(4)} | B: ${String(s.bottom).padStart(4)}`;
+                const row = `${s.name.padEnd(15)} | ${gameName.padEnd(12)} | Avg: ${s.avg.toFixed(0).padStart(4)} | T: ${String(s.top).padStart(4)} | B: ${String(s.bottom).padStart(4)} | Time: ${t}s`;
                 this.statsContainer.add(this.add.text(0, yOffset, row, { fontFamily: "Courier", fontSize: "15px", color: "#ffffff" }).setOrigin(0.5));
                 yOffset += 30;
             });
