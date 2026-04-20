@@ -384,7 +384,7 @@ async def saml_acs(request: Request):
     # handle role override 
     # edit in public/assets/role_override.xlsx
     # Column A: Admin Permissions | Column C: Professor Permissions | Column D: Allowed Professor Section Numbers
-    df = read_excel('role_override.xlsx', usecols=[0, 2, 3]) 
+    df = read_excel('../../public/assets/role_override.xlsx', usecols=[0, 2, 3]) 
 
     # Check for Admin override
     if nameid in df.iloc[:, 0].astype(str).str.tolist():
