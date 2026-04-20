@@ -55,8 +55,14 @@ export default class ProfessorDash extends Scene {
 
             // 1. Get sections from localStorage (Match your LoginScreen.js style)
             // Use the key you set in the parser, e.g., 'game_section'
-            const sectionString = localStorage.getItem('game_section') || "001"; 
-            const sections = sectionString.split(',');
+
+            const response = await fetch("/fetch-user");
+            const userId = await response.json().then(data => data.userid);
+            let sections = await response.json().then(data => data.usersection);
+
+
+            //const sectionString = localStorage.getItem('game_section') || "001"; 
+            sections = sectionString.split(',');
 
             // 2. Build items (Logic remains the same)
             sections.forEach((id, i) => {
