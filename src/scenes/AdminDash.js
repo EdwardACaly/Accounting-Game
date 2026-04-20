@@ -4,7 +4,7 @@ export default class AdminDash extends Scene {
     constructor() {
         super("AdminDash");
         this.statsContainer = null;
-        this.dropdownOptions = null;x
+        this.dropdownOptions = null;
         this.isDropdownOpen = false;
         this.currentEndpoint = null;
     }
