@@ -8,7 +8,7 @@ export default class ProfessorDash extends Scene {
     }
 
     create() {
-        this.add.rectangle(0, 0, this.scale.width, this.scale.height, 0x1a1a1a).setOrigin(0);
+        this.add.rectangle(0, 0, this.scale.width, this.scale.height, 0x550000).setOrigin(0);
 
         this.title = this.add.text(this.scale.width / 2, 50, "Professor Dashboard", {
             fontSize: "42px", fontFamily: '"Jersey 10", sans-serif', color: "#dcc89f"
@@ -67,10 +67,10 @@ export default class ProfessorDash extends Scene {
             data.student_breakdown.forEach((s) => {
                 // Formatting to include Top and Bottom
                 const gameName = GAME_NAMES[s.game] || s.game;
-                const row = `${s.name.padEnd(15)} | ${gameName.padEnd(12)} | Avg: ${s.avg.toFixed(0).padStart(4)} | T: ${String(s.top).padStart(4)} | B: ${String(s.bottom).padStart(4)}`;
+                const row = `${s.name.padEnd(15)} | ${gameName.padEnd(12)} | Avg: ${s.avg.toFixed(0).padStart(4)} | T: ${String(s.top).padStart(4)} | B: ${String(s.bottom).padStart(4)} | Time: ${String(s.time_played).padStart(4)}s`;
     
                 let txt = this.add.text(0, yOffset, row, {
-                    fontSize: "16px", // Slightly smaller to fit the extra data
+                    fontSize: "14px", // Slightly smaller to fit the extra data
                     fontFamily: "Courier", 
                     color: "#ffffff"
                 }).setOrigin(0.5);
