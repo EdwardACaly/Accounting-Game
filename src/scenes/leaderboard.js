@@ -173,7 +173,7 @@ export class Leaderboard extends Scene {
 
         // Dashboard Arrow
 
-        const response = await fetch("https://accounting-game.cse.eng.auburn.edu/api/fetch-user");
+        const response = await fetch("https://accounting-game.cse.eng.auburn.edu/api/fetch-user/");
         const userRole = await response.json().then(data => data.role);
 
         console.log("User role fetched from server:", userRole);

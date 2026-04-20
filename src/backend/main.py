@@ -457,6 +457,11 @@ async def fetch_user(request: Request):
         "sections": request.session.get('sections')
     }
 
+# debug endpoint
+@app.get("/api/test")
+async def test():
+    return {"message": "API is working!"}
+
 # handles log out requests/responses
 @app.get('/saml/sls', tags=["SAML"])
 async def saml_sls(request: Request):
