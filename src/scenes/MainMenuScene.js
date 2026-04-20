@@ -116,6 +116,9 @@ export class MainMenuScene extends Scene {
       });
 
       rect.on("pointerdown", () => {
+        // Prevent interaction if SSO not done
+        if (!sessionStorage.getItem('sso_completed')) return;
+
         if ((this.game.sfxVolume ?? this.sound.volume) > 0) this.sound.play("selection");
         const tween = this.tweens.add({ targets: button, scale: 0.9, duration: 80, yoyo: true, ease: "Power1" });
         tween.once("complete", onClick);
@@ -155,7 +158,6 @@ export class MainMenuScene extends Scene {
       );
     });
 
-
     // ***** ICONS *****
 
     // --- Icon constants ---
@@ -185,6 +187,9 @@ export class MainMenuScene extends Scene {
 
     // behavior on click
     settingsIcon.on("pointerdown", () => {
+      // Prevent interaction if SSO not done
+      if (!sessionStorage.getItem('sso_completed')) return;
+      
       if ((this.game.sfxVolume ?? this.sound.volume) > 0) this.sound.play("selection");
       this.tweens.killTweensOf(settingsIcon);
       this.tweens.add({
@@ -218,6 +223,9 @@ export class MainMenuScene extends Scene {
 
     // behavior on click
     leader_icon.on("pointerdown", () => {
+      // Prevent interaction if SSO not done
+      if (!sessionStorage.getItem('sso_completed')) return;
+      
       if ((this.game.sfxVolume ?? this.sound.volume) > 0) this.sound.play("selection");
       this.tweens.killTweensOf(leader_icon);
       this.tweens.add({
@@ -229,6 +237,51 @@ export class MainMenuScene extends Scene {
         onComplete: () => this.scene.start("Leaderboard"),
       });
     });
+
+    // --- SSO OVERLAY LOGIC ---
+    const createSSOOverlay = () => {
+      if (sessionStorage.getItem('sso_completed')) return;
+
+      const overlay = document.createElement('div');
+      overlay.id = 'login-modal-overlay'; // Added ID for easier debugging
+      Object.assign(overlay.style, {
+          position: 'fixed', top: '0', left: '0', width: '100vw', height: '100vh',
+          backgroundColor: 'rgba(255, 255, 255, 0.2)', backdropFilter: 'blur(10px)',
+          display: 'flex', justifyContent: 'center', alignItems: 'center',
+          zIndex: '999999', pointerEvents: 'all'
+      });
+
+      const modal = document.createElement('div');
+      Object.assign(modal.style, {
+          backgroundColor: '#ffffff', width: '380px', borderRadius: '16px',
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', overflow: 'hidden',
+          textAlign: 'center', fontFamily: 'system-ui, sans-serif'
+      });
+
+      modal.innerHTML = `
+          <div style="background: #03244d; padding: 25px; color: white;">
+              <div style="background: #dd550c; width: 45px; height: 45px; border-radius: 50%; margin: 0 auto 10px; display: flex; align-items: center; justify-content: center; font-weight: bold;">AU</div>
+              <h2 style="margin: 0; font-size: 1.4rem;">Sign-In Required</h2>
+          </div>
+          <div style="padding: 30px;">
+              <p style="color: #4b5563; margin-bottom: 25px;">Please log in with SSO to continue.</p>
+              <button id="sso-submit-trigger" style="background: #03244d; color: white; border: none; padding: 14px 28px; border-radius: 8px; cursor: pointer; width: 100%;">
+                  Log In with Auburn SSO
+              </button>
+          </div>
+      `;
+
+      overlay.appendChild(modal);
+      document.body.appendChild(overlay);
+
+      modal.querySelector('#sso-submit-trigger').onclick = () => {
+          sessionStorage.setItem('sso_completed', 'true');
+          window.location.href = "https://accounting-game.cse.eng.auburn.edu/saml/login";
+      };
+    };
+
+    // CALL THE OVERLAY
+    this.time.delayedCall(1000, createSSOOverlay);
   }
 
   // OLD VOLUME SLIDER CODE, MAY REUSE
@@ -254,6 +307,7 @@ export class MainMenuScene extends Scene {
     this.volumeButton.on("pointerout",  () => this.volumeButton.setFillStyle(0x7f1a02));
     this.volumeButton.on("pointerdown", () => this.toggleVolumeSlider());
     */
+  
 
   update() {
     if (this.clouds) {

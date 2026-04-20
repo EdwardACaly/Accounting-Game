@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 from fastapi import FastAPI, HTTPException, Body, Query, Path, Request
 from fastapi.responses import RedirectResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.sessions import SessionMiddleware
 import psycopg2
 from psycopg2.pool import SimpleConnectionPool
 from contextlib import asynccontextmanager
@@ -20,6 +21,15 @@ from stat_queries import *
 import io
 import csv
 from fastapi.responses import StreamingResponse
+
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger("SAML")
+logger.setLevel(logging.INFO)
 
 load_dotenv()
 
@@ -58,6 +68,8 @@ app.add_middleware(
     allow_headers=["*"],        # <-- allow all headers
 )
 
+# Session middleware for storing parsed user info
+app.add_middleware(SessionMiddleware, secret_key=os.getenv("SESSION_SECRET"))
 
 
 class LeaderboardRow(BaseModel):
@@ -260,12 +272,13 @@ def preview_rank(game: str, score: int, n: int = TOP_N):
 # SAML ---------------------------------------------------------------------------------------------------------------
 
 
-SAML_PATH = os.path.join(os.path.dirname(__file__), 'saml')
+SAML_PATH = os.getenv('SAML_PATH', os.path.join(os.path.dirname(__file__), 'saml'))
 
 def prepare_fastapi_request(request: Request, body: dict = {}):
     return {
-        'https': 'on' if request.url.scheme == 'https' else 'off',
-        'http_host': request.headers.get('host', request.url.hostname),
+        'https': request.headers.get('x-forwarded-proto', 'http'),
+        'http_host': request.headers.get('x-forwarded-host', request.headers.get('host')),
+        'server_port': request.headers.get('x-forwarded-port', '443'),
         'script_name': request.url.path,
         'get_data': dict(request.query_params),
         'post_data': body
@@ -308,7 +321,105 @@ async def saml_acs(request: Request):
     # grab student info
     nameid = auth.get_nameid()
     attrs = auth.get_attributes()
+    first_name = attrs.get("givenName", [""])[0]
+    last_name = attrs.get("sn", [""])[0]
+
+    # save nameid for frontend as database key
+    request.session['nameid'] = nameid
+
+    # ===PARSING===
+    # parse the memberOf attribute for section info + student/professor
+    mo = attrs.get('memberOf', [])
+
+    # ensure memberOf is populated
+    if not mo:
+        return Response(content="No memberOf attribute found", status_code=400)
+    
+    # role flags
+    is_professor = False
+    is_student = False
+    sections = []
+
+    # each group is a string like "CN=2024S_ACCT2110_001,OU=Groups,DC=auburn,DC=edu"
+    for group in mo:
+
+        # only look at common name
+        cn = None
+
+        for part in group.split(','):
+            if part.strip().startswith('CN='):
+                cn = part.split('=')[1].strip()
+                break
+
+        if not cn:
+            continue
+
+        # raise professor flag
+        if cn == 'AU_Teaching':
+            is_professor = True
+            continue
+
+        # raise student flag
+        elif cn == 'AUA_Student_Gids':
+            is_student = True
+
+        # detect sections ACCT 2110 and ACCT 5110
+        else:
+            if re.match(r'^\d{4}[FS]_ACCT[25]110_\d{3}$', cn): # Ex: "2024S_ACCT2110_001"
+                sections.append(cn)
+
+    # null section if they don't belong
+    if not sections:
+        sections = None
+
+    # save role
+    if is_professor and is_student:
+        request.session['role'] = 'professor_student'
+    elif is_professor:
+        request.session['role'] = 'professor'
+    elif is_student:
+        request.session['role'] = 'student'
+    else:
+        request.session['role'] = 'unknown'
+
+    #Log all saved information
+    logger.info(f"User '{nameid}' authenticated with role '{request.session['role']}'")
+
+    # Comma separate sections
+    cs_sections = ",".join(sections) if sections else None
+
+    # UPSERT the user data
+    if pool is None:
+        raise HTTPException(status_code=500, detail="DB not initialized")
+
+    conn = pool.getconn()
+    try:
+        conn.autocommit = True 
+        
+        with conn:
+            with conn.cursor() as cur:
+                cur.execute(SQL_UPSERT_USER, (
+                    nameid, 
+                    first_name, 
+                    last_name, 
+                    cs_sections if cs_sections else None
+                ))
+        conn.commit()
+        logger.info(f"Database entry created/updated for user '{nameid}' with name '{first_name} {last_name}' and sections: {cs_sections}")
+    
+    except Exception as e:
+        logger.error(f"Database error during SAML ACS processing for user '{nameid}': {e}")
+        return Response(content=f"Database error: {str(e)}", status_code=500)
+
     return RedirectResponse('/', status_code=302)
+
+# fetch userid and role for frontend
+@app.get('/fetch-user')
+async def fetch_user(request: Request):
+    return {
+        "nameid": request.session.get('nameid'),
+        "role": request.session.get('role')
+    }
 
 # handles log out requests/responses
 @app.get('/saml/sls', tags=["SAML"])
@@ -568,5 +679,20 @@ def register_profile(payload: dict = Body(...)):
                         section = EXCLUDED.section;
                 """, (username, first, last, section))
         return {"status": "success"}
+    finally:
+        pool.putconn(conn)
+
+# clear all student data
+@app.delete("/admin/clear-data", tags=["Admin"])
+async def clear_data():
+    if pool is None:
+        raise HTTPException(status_code=500, detail="DB not initialized")
+    conn = pool.getconn()
+    try:
+        with conn:
+            with conn.cursor() as cur:
+                # previously: cur.execute("TRUNCATE public.game_analytics, public.player_profiles RESTART IDENTITY CASCADE;")
+                cur.execute("TRUNCATE public.game_analytics, public.player_profiles CASCADE;")
+        return {"status": "success", "message": "All data cleared"}
     finally:
         pool.putconn(conn)

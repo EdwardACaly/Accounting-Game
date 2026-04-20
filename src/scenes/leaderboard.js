@@ -13,12 +13,32 @@ export class Leaderboard extends Scene {
 
     async create() {
         // --- Background ---
-        this.add.image(0, 0, "home_bg")
-            .setOrigin(0, 0)
-            .setDisplaySize(this.scale.width, this.scale.height);
-        this.add.image(0, 0, "home_fg")
-            .setOrigin(0, 0)
-            .setDisplaySize(this.scale.width, this.scale.height);
+        this.add.image(this.scale.width / 2, this.scale.height / 2, "home_bg")
+  	    .setOrigin(0.5)
+    	    .setDisplaySize(this.scale.width, this.scale.height)
+  	    .setDepth(0);
+
+	// Moving clouds
+    	this.clouds = [];
+    	this.cloudSpeed = 0.3;
+
+    	const baseSpacing = 550;
+    	const numClouds = Math.ceil(this.scale.width / baseSpacing) + 3;
+
+    	for (let i = 0; i < numClouds; i++) {
+            const xOffset = i * baseSpacing + Phaser.Math.Between(-80, 80);
+
+            const cloud = this.add.image(
+            	xOffset,
+            	this.scale.height * 0.5 + Phaser.Math.Between(-40, 40),
+            	"home_clouds"
+            )
+            	.setOrigin(0.5)
+            	.setScale(Phaser.Math.FloatBetween(0.65, 0.85))
+            	.setDepth(0);
+
+            this.clouds.push(cloud);
+    	}
 
         // --- Center panel Constants ---
         const panelWidth = 750;
@@ -103,13 +123,36 @@ export class Leaderboard extends Scene {
         const createButton = (relX, relY, labelText, onClick) => {
             const rect = this.add.rectangle(0, 0, 125, 50, 0x7f1a02).setStrokeStyle(3, 0xdcc89f);
             const label = this.add.text(0, 0, labelText, {
-                fontSize: "26px",
+                fontSize: "30px",
                 fontFamily: '"Jersey 10", sans-serif',
                 color: "#dcc89f",
+                align: "center",
+                //wordWrap: { width: 90, useAdvancedWrap: true },  // wrap text within button width
             }).setOrigin(0.5);
+
             const button = this.add.container(relX, relY, [rect, label]);
             rect.setInteractive({ useHandCursor: true });
-            rect.on("pointerdown", onClick);
+
+            rect.on("pointerover", () => {
+                rect.setFillStyle(0xa8321a);
+                this.tweens.add({ targets: button, scale: 1.05, duration: 150, ease: "Power1" });
+            });
+            rect.on("pointerout", () => {
+                rect.setFillStyle(0x7f1a02);
+                this.tweens.add({ targets: button, scale: 1, duration: 150, ease: "Power1" });
+            });
+            rect.on("pointerdown", () => {
+                if ((this.game.sfxVolume ?? this.sound.volume) > 0) this.sound.play("selection");
+                const tween = this.tweens.add({
+                    targets: button,
+                    scale: 0.9,
+                    duration: 80,
+                    yoyo: true,
+                    ease: "Power1",
+                });
+                tween.once("complete", onClick);
+            });
+
             return button;
         };
 
@@ -122,8 +165,63 @@ export class Leaderboard extends Scene {
             this.leaderboardContainer.add(btn);
         });
 
+
+        // Exit button
         const exitBtn = createButton(-panelWidth / 2 + 72.5, -panelHeight / 2 + 35, "Exit", () => this.scene.start("MainMenuScene"));
         this.leaderboardContainer.add(exitBtn);
+
+
+        // Dashboard Arrow
+
+        const response = await fetch("/fetch-user");
+        const userRole = await response.json().then(data => data.role);
+        // check type of user (admin, professor, other)        
+        const dashTarget = userRole === "admin" ? "AdminDash" :
+                           userRole === "professor" ? "ProfessorDash" :
+                           null;
+
+        // MANUAL ENTRY BEFORE LOGIC (can set dashTarget to one of 3 values above)
+        dashTarget = null
+
+        // if admin/prof, draw arrow to correct dashboard
+        if (dashTarget) {
+            const width = 95;
+            const height = 40;
+            
+            const dashRect = this.add.rectangle(0, 0, width, height, 0x7f1a02).setStrokeStyle(3, 0xdcc89f);
+            const dashArrow = this.add.text(0, 0, "→", {
+                fontSize: "32px",
+                fontFamily: '"Jersey 10", sans-serif',
+                color: "#dcc89f",
+                stroke: "#dcc89f",
+                align: "center",
+                strokeThickness: 2,
+            }).setOrigin(0.5);
+
+            const dashButton = this.add.container(this.scale.width - 65, this.scale.height / 2, [dashRect, dashArrow]);
+            dashRect.setInteractive({ useHandCursor: true });
+            
+            dashRect.on("pointerover", () => {
+                dashRect.setFillStyle(0xa8321a);
+                this.tweens.add({ targets: dashButton, scale: 1.05, duration: 150, ease: "Power1" });
+            });
+            dashRect.on("pointerout", () => {
+                dashRect.setFillStyle(0x7f1a02);
+                this.tweens.add({ targets: dashButton, scale: 1, duration: 150, ease: "Power1" });
+            });
+            dashRect.on("pointerdown", () => {
+                if ((this.game.sfxVolume ?? this.sound.volume) > 0) this.sound.play("selection");
+                const tween = this.tweens.add({
+                    targets: dashButton,
+                    scale: 0.9,
+                    duration: 80,
+                    yoyo: true,
+                    ease: "Power1",
+                });
+                tween.once("complete", () => this.scene.start(dashTarget));
+            });
+        }
+        
 
         // --- Scrollable Area Setup ---
         const maskTopY_Rel = -panelHeight / 2 + 80;
@@ -178,6 +276,25 @@ export class Leaderboard extends Scene {
         this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC).on("down", () => this.scene.start("MainMenuScene"));
     }
 
+    // cloud wrap logic
+    update() {
+        if (!this.clouds) return;
+
+        const width = this.scale.width;
+
+        this.clouds.forEach(cloud => {
+            cloud.x -= this.cloudSpeed;
+
+            if (cloud.x < -200) {
+                const rightMost = Math.max(...this.clouds.map(c => c.x));
+
+                cloud.x = rightMost + Phaser.Math.Between(350, 600);
+                cloud.y = this.scale.height * 0.6 + Phaser.Math.Between(-40, 40);
+                cloud.scale = Phaser.Math.FloatBetween(0.65, 0.85);
+            }
+        });
+    }
+
     updateScroll(maskVisibleHeight, maskTopY) {
         const overflow = Math.max(0, this.contentHeight - maskVisibleHeight);
         const trackMargin = 10;
@@ -220,7 +337,7 @@ export class Leaderboard extends Scene {
             const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
             const apiBase = isLocal 
                 ? "http://localhost:8000" 
-                : "http://accounting-game.cse.eng.auburn.edu/api";
+                : "https://accounting-game.cse.eng.auburn.edu/api";
 
             let url = `${apiBase}/leaderboard/${mode}`;
         
@@ -264,6 +381,15 @@ export class Leaderboard extends Scene {
             this.updateScroll(this.maskVisibleHeight, this.relMaskTopY);
         } catch (err) {
             console.error(err);
+            const msg = this.add.text(0, 20, "Error loading leaderboard", {
+                fontSize: "20px",
+                fill: "#ff4444",
+                fontFamily: '"Jersey 10", sans-serif',
+            }).setOrigin(0.5, 0);
+            this.tableGroup.add(msg);
+            this.contentHeight = 40;
+            this.scrollY = 0;
+            this.updateScroll(maskVisibleHeight, maskTopY);
         }
     }
 }

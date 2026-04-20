@@ -59,7 +59,7 @@ export class Preloader extends Phaser.Scene {
         this.load.image("volumeIcon", "volume.png");
 
         // Equation Game  
-        this.load.image("gm3_level1_bg", "assets/level1.jpg");
+        this.load.image("gm3_level1_bg", "level1.jpg");
 
         // UI / misc
         this.load.image("logo", "logo.png");

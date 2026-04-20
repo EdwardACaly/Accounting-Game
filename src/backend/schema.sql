@@ -8,6 +8,7 @@
 -- psql -U postgres -h 127.0.0.1 -d postgres -v password='yourpassword' -f schema.sql
 CREATE ROLE game_app LOGIN PASSWORD :'password' NOSUPERUSER NOCREATEDB NOCREATEROLE;
 CREATE DATABASE leaderboard OWNER game_app;
+\connect leaderboard;
 
 -- 
 -- THE OLD ARCADE SYSTEM (Archived)
@@ -71,7 +72,7 @@ CREATE TABLE IF NOT EXISTS public.game_analytics (
     username VARCHAR(100) REFERENCES public.player_profiles(username),
     game TEXT NOT NULL CHECK (game IN ('game1', 'game2', 'game3-1', 'game3-2', 'game3-3')),
     score INTEGER NOT NULL CHECK (score >= 0),
-    time_played_seconds INTEGER DEFAULT 0,
+    time_played INTEGER DEFAULT 0,
     played_at TIMESTAMPTZ DEFAULT NOW()
 );
 

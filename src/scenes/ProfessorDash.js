@@ -46,10 +46,18 @@ export default class ProfessorDash extends Scene {
         this.input.off('wheel'); 
         }
         
+        // game names for the 5 games, coming from spreadsheet
+        const GAME_NAMES = {
+            "game1":   "Db. vs. Cr.",
+            "game2":   "Elements",
+            "game3-1": "Balance",
+            "game3-2": "Effects",
+            "game3-3": "Errors",
+        };
 
         // --- 2. DATA FETCH ---
         try {
-            const response = await fetch(`http://accounting-game.cse.eng.auburn.edu/api/stats/section/${sectionId}`);
+            const response = await fetch(`https://accounting-game.cse.eng.auburn.edu/api/stats/section/${sectionId}`);
             const data = await response.json();
 
             // Create fresh container
@@ -58,7 +66,8 @@ export default class ProfessorDash extends Scene {
 
             data.student_breakdown.forEach((s) => {
                 // Formatting to include Top and Bottom
-                const row = `${s.name.padEnd(15)} | ${s.game.padEnd(8)} | Avg: ${s.avg.toFixed(0).padStart(4)} | T: ${String(s.top).padStart(4)} | B: ${String(s.bottom).padStart(4)} | Time: ${String(s.time_played).padStart(4)}s`;
+                const gameName = GAME_NAMES[s.game] || s.game;
+                const row = `${s.name.padEnd(15)} | ${gameName.padEnd(12)} | Avg: ${s.avg.toFixed(0).padStart(4)} | T: ${String(s.top).padStart(4)} | B: ${String(s.bottom).padStart(4)} | Time: ${String(s.time_played).padStart(4)}s`;
     
                 let txt = this.add.text(0, yOffset, row, {
                     fontSize: "14px", // Slightly smaller to fit the extra data
@@ -76,7 +85,7 @@ export default class ProfessorDash extends Scene {
             // Add Download Button
             if (this.downloadBtn) this.downloadBtn.destroy();
             this.downloadBtn = this.createTabButton(this.scale.width / 2, 450, "Download CSV", () => {
-                window.open(`http://accounting-game.cse.eng.auburn.edu/api/stats/section/${sectionId}/csv`, "_blank");
+                window.open(`https://accounting-game.cse.eng.auburn.edu/api/stats/section/${sectionId}/csv`, "_blank");
             });
 
         } catch (e) {
