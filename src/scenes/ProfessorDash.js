@@ -58,6 +58,7 @@ export default class ProfessorDash extends Scene {
 
             const response = await fetch("https://accounting-game.cse.eng.auburn.edu/api/fetch-user");
             let sections = await response.json().then(data => data.sections);
+            console.log("Fetched sections from backend:", sections);
 
 
             //const sectionString = localStorage.getItem('game_section') || "001"; 
