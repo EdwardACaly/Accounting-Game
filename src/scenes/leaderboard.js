@@ -210,8 +210,8 @@ export class Leaderboard extends Scene {
             this.leaderboardContainer.add(dashButton);
 
             // position x and y
-            dashButton.x = this.scale.width / 2 - 65;
-            dashButton.y = -this.scale.height / 2 + 135;
+            dashButton.x = this.scale.width / 2 - 55;
+            dashButton.y = 0;
 
             dashRect.setInteractive({ useHandCursor: true });
             
