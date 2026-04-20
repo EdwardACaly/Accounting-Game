@@ -56,7 +56,7 @@ export default class ProfessorDash extends Scene {
             // 1. Get sections from localStorage (Match your LoginScreen.js style)
             // Use the key you set in the parser, e.g., 'game_section'
 
-            const response = await fetch("/fetch-user");
+            const response = await fetch("https://accounting-game.cse.eng.auburn.edu/fetch-user");
             let sections = await response.json().then(data => data.usersection);
 
 
