@@ -4,7 +4,7 @@ export default class AdminDash extends Scene {
     constructor() {
         super("AdminDash");
         this.statsContainer = null;
-        this.dropdownOptions = null;
+        this.dropdownOptions = null;x
         this.isDropdownOpen = false;
         this.currentEndpoint = null;
     }
@@ -169,7 +169,7 @@ export default class AdminDash extends Scene {
 
                     const gameName = GAME_NAMES[s.game] || s.game;
                     const t = timeLookup[s.user] || 0;
-                    const row = `S${s.section} | ${s.name.padEnd(12)} | ${gameName.padEnd(12)} | Avg: ${s.avg.toFixed(0)} | T: ${s.top} | Time Played: ${String(s.time_played).padStart(4)}s`;
+                    const row = `S${s.section} | ${s.name.padEnd(12)} | ${gameName.padEnd(12)} | Avg: ${s.avg.toFixed(0)} | T: ${s.top} | Time Played: ${t}s`;
                     this.statsContainer.add(this.add.text(0, yOffset, row, { fontFamily: "Courier", fontSize: "14px", color: "#ffffff" }).setOrigin(0.5));
 
                     yOffset += rowSpacing;
@@ -180,7 +180,7 @@ export default class AdminDash extends Scene {
 
                     const gameName = GAME_NAMES[s.game] || s.game;
                     const t = timeLookup[s.user] || 0;
-                    const row = `${s.name.padEnd(15)} | ${gameName.padEnd(8)} | Avg: ${s.avg.toFixed(0)} | T: ${s.top} | B: ${s.bottom} | Time Played: ${String(s.time_played).padStart(4)}s`;
+                    const row = `${s.name.padEnd(15)} | ${gameName.padEnd(8)} | Avg: ${s.avg.toFixed(0)} | T: ${s.top} | B: ${s.bottom} | Time Played: ${t}s`;
 
                     this.statsContainer.add(this.add.text(0, yOffset, row, { fontFamily: "Courier", fontSize: "15px", color: "#ffffff" }).setOrigin(0.5));
                     yOffset += rowSpacing;
