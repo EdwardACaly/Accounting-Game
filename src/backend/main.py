@@ -563,7 +563,7 @@ def get_section_report(section_id: str):
         pool.putconn(conn)
 
 #get all the unique sections for the dropdown filter 
-@app.get("/api/stats/sections/list")
+@app.get("/stats/sections/list")
 async def get_sections_list():
     conn = pool.getconn()
     try:
