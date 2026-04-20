@@ -197,7 +197,7 @@ export default class AdminDash extends Scene {
 
         const maskShape = this.make.graphics();
         // Mask covers area from Y=150 to Y=450
-        maskShape.fillRect(this.scale.width / 2 - 375, maskY, 750, maskVisibleHeight);
+        maskShape.fillRect(this.scale.width / 2 - 450, maskY, 900, maskVisibleHeight);
         this.statsContainer.setMask(maskShape.createGeometryMask());
 
         this.input.on('wheel', (pointer, gameObjects, deltaX, deltaY, deltaZ) => {
