@@ -161,7 +161,7 @@ export class GameOverScene extends Scene {
     });
 
     //const savedUsername = localStorage.getItem("game_username");
-    const response = await fetch("/fetch-user");
+    const response = await fetch("https://accounting-game.cse.eng.auburn.edu/fetch-user");
     const savedUsername = await response.json().then(data => data.userid);
 
     // block manual submission if tutorial

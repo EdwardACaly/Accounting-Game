@@ -173,7 +173,7 @@ export class Leaderboard extends Scene {
 
         // Dashboard Arrow
 
-        const response = await fetch("/fetch-user");
+        const response = await fetch("https://accounting-game.cse.eng.auburn.edu/fetch-user");
         const userRole = await response.json().then(data => data.role);
         // check type of user (admin, professor, other)        
         let dashTarget = userRole === "admin" ? "AdminDash" :
