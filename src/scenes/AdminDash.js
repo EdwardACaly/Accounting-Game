@@ -169,7 +169,7 @@ export default class AdminDash extends Scene {
 
                     const gameName = GAME_NAMES[s.game] || s.game;
                     const t = timeLookup[s.user] || 0;
-                    const row = `S${s.section} | ${s.name.padEnd(12)} | ${gameName.padEnd(12)} | Avg: ${s.avg.toFixed(0)} | T: ${s.top} | Time Played: ${String(s.time_played).padStart(4)}s`;
+                    const row = `S${s.section} | ${s.name.padEnd(12)} | ${gameName.padEnd(12)} | Avg: ${s.avg.toFixed(0)} | T: ${s.top} | Time Played: ${String(t).padStart(4)}s`;
                     this.statsContainer.add(this.add.text(0, yOffset, row, { fontFamily: "Courier", fontSize: "14px", color: "#ffffff" }).setOrigin(0.5));
 
                     yOffset += rowSpacing;
