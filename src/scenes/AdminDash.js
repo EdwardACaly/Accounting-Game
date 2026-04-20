@@ -4,36 +4,105 @@ export default class AdminDash extends Scene {
     constructor() {
         super("AdminDash");
         this.statsContainer = null;
+        this.dropdownOptions = null;
+        this.isDropdownOpen = false;
+        this.currentEndpoint = null;
     }
 
     create() {
         this.add.rectangle(0, 0, this.scale.width, this.scale.height, 0x0a1a2a).setOrigin(0);
 
-        this.add.text(this.scale.width / 2, 40, "Global Admin Panel", {
-            fontSize: "42px", fontFamily: '"Jersey 10", sans-serif', color: "#dcc89f"
+        this.add.text(this.scale.width / 2, 40, "ADMIN", {
+            fontSize: "48px", fontFamily: '"Jersey 10", sans-serif', color: "#dcc89f"
         }).setOrigin(0.5);
 
-        // --- Persistent Header Buttons ---
-        const sections = ["001", "002", "003"];
-        sections.forEach((id, index) => {
-            this.createSmallBtn(100 + (index * 110), 100, `Sec ${id}`, () => 
-                this.loadData(`/api/stats/section/${id}`, `Section ${id}`, "section"));
-        });
+        // --- THE DROPDOWN MENU ---
+        this.createDropdown(this.scale.width / 2, 100);
 
-        this.createSmallBtn(480, 100, "GLOBAL TOPS", () => 
-            this.loadData(`/api/stats/admin/global-tops`, "Global Rankings", "global"));
+        this.downloadBtn = this.createSmallBtn(this.scale.width - 80, 100, "CSV", () => {
+            if (this.currentEndpoint) {
+                window.open(`https://accounting-game.cse.eng.auburn.edu${this.currentEndpoint}/csv`, "_blank");
+            } else {
+                alert("Please select a view first to download data.");
+            }
+        }).setVisible(false); // Only show when data is loaded
 
-        this.createSmallBtn(680, 100, "ALL STUDENTS", () => 
-            this.loadData(`/api/stats/admin/all-students`, "Complete Roster", "all"));
-
-        // clear data button
-        this.createSmallBtn(880, 100, "CLEAR DATA", () => this.showClearConfirm());
-
-        // Return Button (Bottom)
+        // --- RETURN BUTTON (Bottom) ---
         this.createSmallBtn(this.scale.width / 2, this.scale.height - 40, "Return to Student View", () => {
             this.scene.start("MainMenuScene");
         });
     }
+
+    createDropdown(x, y) {
+        // Main button
+        this.dropdownMain = this.add.container(x, y);
+        const bg = this.add.rectangle(0, 0, 300, 40, 0x333333).setInteractive({ useHandCursor: true });
+        const txt = this.add.text(0, 0, "Select Session / View ▼", {
+            fontSize: "20px", fontFamily: '"Jersey 10", sans-serif', color: "#dcc89f"
+        }).setOrigin(0.5);
+        this.dropdownMain.add([bg, txt]);
+
+        bg.on("pointerdown", () => this.toggleDropdown());
+
+        // Options container (Hidden by default)
+        this.dropdownOptions = this.add.container(x, y + 40).setVisible(false).setDepth(100);
+    }
+
+    async toggleDropdown() {
+        this.isDropdownOpen = !this.isDropdownOpen;
+        this.dropdownOptions.setVisible(this.isDropdownOpen);
+
+        if (this.isDropdownOpen) {
+            this.dropdownOptions.removeAll(true);
+            
+            try {
+                // 1. Fetch the dynamic list of sections from your new API
+                const res = await fetch('https://accounting-game.cse.eng.auburn.edu/api/stats/sections/list');
+                const dynamicSections = await res.json(); // Expected: ["001", "002", "003", "004"...]
+
+                // 2. Build the menu items array
+                const menuItems = [];
+
+                // Add the Dynamic Sections first
+                dynamicSections.forEach(secId => {
+                    menuItems.push({ 
+                        label: `Section ${secId}`, 
+                        action: () => this.loadData(`/api/stats/section/${secId}`, `Section ${secId}`, "section") 
+                    });
+                });
+
+                // Add the Static Global Views
+                menuItems.push({ label: "Global Tops", action: () => this.loadData('/api/stats/admin/global-tops', "Global Rankings", "global") });
+                menuItems.push({ label: "All Students", action: () => this.loadData('/api/stats/admin/all-students', "Complete Roster", "all") });
+                
+                // Add the Danger Zone
+                menuItems.push({ label: "Clear All Data", action: () => this.showClearConfirm(), color: "#ff4444" });
+
+                // 3. Render the list
+                menuItems.forEach((opt, i) => {
+                    const optBg = this.add.rectangle(0, i * 42, 300, 40, 0x222222).setInteractive({ useHandCursor: true });
+                    const optTxt = this.add.text(0, i * 42, opt.label, {
+                        fontSize: "18px", fontFamily: '"Jersey 10", sans-serif', color: opt.color || "#ffffff"
+                    }).setOrigin(0.5);
+
+                    optBg.on("pointerdown", () => {
+                        opt.action();
+                        this.toggleDropdown();
+                    });
+
+                    this.dropdownOptions.add([optBg, optTxt]);
+                });
+
+                // Adjust the dropdown background height if the list is long
+                // (Optional: add a scroll mask if you end up with 20+ sections)
+
+            } catch (err) {
+                console.error("Failed to fetch dynamic sections", err);
+            }
+        }
+    }
+    
+
 
     async loadData(endpoint, titleLabel, type) {
         if (this.statsContainer) {
@@ -52,6 +121,19 @@ export default class AdminDash extends Scene {
 
         // Move the container slightly lower so the Title (at -60) stays within the mask
         this.statsContainer = this.add.container(this.scale.width / 2, 220);
+
+        this.downloadBtn.setVisible(true);
+
+        // --- NEW: THE "X" CLOSE BUTTON ---
+        const closeBtn = this.add.text(350, -80, "X", {
+            fontSize: "24px", backgroundColor: "#7b241c", padding: 5, color: "#ffffff"
+        }).setOrigin(0.5).setInteractive({ useHandCursor: true })
+          .on("pointerdown", () => {
+              this.statsContainer.destroy();
+              this.statsContainer = null;
+              this.downloadBtn.setVisible(false);
+          });
+        this.statsContainer.add(closeBtn);
 
         try {
             const response = await fetch(`https://accounting-game.cse.eng.auburn.edu${endpoint}`);
@@ -128,6 +210,7 @@ export default class AdminDash extends Scene {
             fontSize: "18px", fontFamily: '"Jersey 10", sans-serif', backgroundColor: "#333", padding: 8, color: "#dcc89f"
         }).setOrigin(0.5).setInteractive({ useHandCursor: true }).on("pointerdown", callback);
     }
+    
     showClearConfirm() {
     const overlay = this.add.rectangle(
         this.scale.width / 2, this.scale.height / 2,

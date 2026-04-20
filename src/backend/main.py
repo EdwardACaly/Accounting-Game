@@ -526,6 +526,21 @@ def get_section_report(section_id: str):
     finally:
         pool.putconn(conn)
 
+#get all the unique sections for the dropdown filter 
+@app.get("/api/stats/sections/list")
+async def get_sections_list():
+    conn = pool.getconn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT DISTINCT section FROM player_profiles WHERE section IS NOT NULL ORDER BY section ASC")
+            sections = [row[0] for row in cur.fetchall()]
+        return sections
+    finally:
+        # This ensures the connection goes back to the pool 
+        # even if the query fails.
+        pool.putconn(conn)
+
+
 # admin view 
 @app.get("/stats/admin/global-tops")
 def get_admin_global():
