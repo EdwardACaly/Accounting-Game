@@ -388,20 +388,19 @@ async def saml_acs(request: Request):
     # Column A: Admin Permissions | Column C: Professor Permissions | Column D: Allowed Professor Section Numbers
     df = read_excel('../../public/assets/role_override.xlsx', usecols=[0, 2, 3]) 
 
-    logger.info(f"Checking professor overrides for user '{userid}' against the following list: {df.iloc[:, 2].astype(str).tolist()}")
     # Check for Admin override
     if userid in df.iloc[:, 0].astype(str).tolist():
         request.session['role'] = 'admin'
     
     # Check for Professor override
-    elif userid in df.iloc[:, 2].astype(str).tolist():
+    elif userid in df.iloc[:, 1].astype(str).tolist():
         request.session['role'] = 'professor'
 
         # Find row where Column C matches userid,
         # get the corresponding value from Column D
         sections_override = df.loc[
-            df.iloc[:, 2].astype(str) == userid,
-            df.columns[3]
+            df.iloc[:, 1].astype(str) == userid,
+            df.columns[2]
         ].iloc[0]
 
         # Only override if it isn't empty
