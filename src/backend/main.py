@@ -445,6 +445,8 @@ async def saml_acs(request: Request):
     except Exception as e:
         logger.error(f"Database error during SAML ACS processing for user '{userid}': {e}")
         return Response(content=f"Database error: {str(e)}", status_code=500)
+    finally:
+        pool.putconn(conn)
 
     return RedirectResponse('/', status_code=302)
 
