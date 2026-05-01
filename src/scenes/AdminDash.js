@@ -142,7 +142,7 @@ export default class AdminDash extends Scene {
             const timeLookup = {};
             if (data.total_time_records) {
                 data.total_time_records.forEach(record => {
-                    timeLookup[record.user] = record.seconds;
+                    timeLookup[`${record.user}_${record.game}`] = record.seconds;
                 });
             }
 
