@@ -557,7 +557,7 @@ def get_section_report(section_id: str):
                     for r in averages
                 ],
                 "total_time_records": [
-                    {"name": f"{r[0]} {r[1]}", "user": r[2], "seconds": r[3] or 0} 
+                    {"name": f"{r[0]} {r[1]}", "user": r[2], "game": r[3], "seconds": r[4] or 0} 
                     for r in time_spent
                 ]
             }
