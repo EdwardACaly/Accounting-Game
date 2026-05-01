@@ -287,7 +287,7 @@ export class GameOverScene extends Scene {
             game: this.gameKey, 
             username: savedUsername, 
             score: parseInt(this.end_points, 10),
-            time_played: Math.floor(this.timeSpentPlaying / 1000) || 0
+            time_played: this.timeSpentPlaying || 0
         }),
       });
 
@@ -372,7 +372,7 @@ export class GameOverScene extends Scene {
               game: this.gameKey, 
               username: username, 
               score: score,
-              time_played: Math.floor(this.timeSpentPlaying / 1000) || 0
+              time_played: this.timeSpentPlaying || 0
           }),
         });
 
