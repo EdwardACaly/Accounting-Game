@@ -660,7 +660,7 @@ def get_all_students_admin():
             # We reuse the Prof query but pass None or a wildcard if your SQL supports it, 
             # OR we use a dedicated "Global" version of that query:
             cur.execute("""
-                SELECT p.first_name, p.last_name, p.username, g.game, AVG(g.score), MAX(g.score), MIN(g.score), p.section
+                SELECT p.first_name, p.last_name, p.username, g.game, AVG(g.score), MAX(g.score), MIN(g.score), p.section, SUM(g.time_played) as total_time
                 FROM public.player_profiles p
                 JOIN public.game_analytics g ON p.username = g.username
                 GROUP BY p.first_name, p.last_name, p.username, g.game, p.section
@@ -674,7 +674,8 @@ def get_all_students_admin():
                     "avg": float(r[4]), 
                     "top": r[5], 
                     "bottom": r[6],
-                    "section": r[7]
+                    "section": r[7],
+                    "total_time": int(r[8]) if r[8] is not None else 0
                 } for r in rows
             ]
     finally:

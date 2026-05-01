@@ -168,8 +168,7 @@ export default class AdminDash extends Scene {
                 data.forEach(s => {
 
                     const gameName = GAME_NAMES[s.game] || s.game;
-                    const t = timeLookup[s.user] || 0;
-                    const row = `S${s.section} | ${s.name.padEnd(12)} | ${gameName.padEnd(12)} | Avg: ${s.avg.toFixed(0)} | T: ${s.top} | Time Played: ${t}s`;
+                    const row = `S${s.section} | ${s.name.padEnd(12)} | ${gameName.padEnd(12)} | Avg: ${s.avg.toFixed(0)} | T: ${s.top} | Time Played: ${s.total_time || 0}s`;
                     this.statsContainer.add(this.add.text(0, yOffset, row, { fontFamily: "Courier", fontSize: "14px", color: "#ffffff" }).setOrigin(0.5));
 
                     yOffset += rowSpacing;
@@ -179,8 +178,7 @@ export default class AdminDash extends Scene {
                 data.student_breakdown.forEach(s => {
 
                     const gameName = GAME_NAMES[s.game] || s.game;
-                    const t = timeLookup[s.user] || 0;
-                    const row = `${s.name.padEnd(15)} | ${gameName.padEnd(8)} | Avg: ${s.avg.toFixed(0)} | T: ${s.top} | B: ${s.bottom} | Time Played: ${t}s`;
+                    const row = `S${s.section} | ${s.name.padEnd(12)} | ${gameName.padEnd(12)} | Avg: ${s.avg.toFixed(0)} | T: ${s.top} | Time Played: ${s.total_time || 0}s`;
 
                     this.statsContainer.add(this.add.text(0, yOffset, row, { fontFamily: "Courier", fontSize: "15px", color: "#ffffff" }).setOrigin(0.5));
                     yOffset += rowSpacing;
