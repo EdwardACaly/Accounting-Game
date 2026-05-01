@@ -108,7 +108,7 @@ export default class ProfessorDash extends Scene {
             const timeLookup = {};
             if (data.total_time_records) {
                 data.total_time_records.forEach(record => {
-                    timeLookup[record.user] = record.seconds;
+                    timeLookup[`${record.user}_${record.game}`] = record.seconds;
                 });
             }
 
@@ -120,7 +120,7 @@ export default class ProfessorDash extends Scene {
             let yOffset = 20;
             data.student_breakdown.forEach((s) => {
                 const gameName = GAME_NAMES[s.game] || s.game;
-                const t = timeLookup[s.user] || 0;
+                const t = timeLookup[`${s.user}_${s.game}`] || 0;
                 const row = `${s.name.padEnd(15)} | ${gameName.padEnd(12)} | Avg: ${s.avg.toFixed(0).padStart(4)} | T: ${String(s.top).padStart(4)} | B: ${String(s.bottom).padStart(4)} | Time: ${t}s`;
                 this.statsContainer.add(this.add.text(0, yOffset, row, { fontFamily: "Courier", fontSize: "15px", color: "#ffffff" }).setOrigin(0.5));
                 yOffset += 30;
